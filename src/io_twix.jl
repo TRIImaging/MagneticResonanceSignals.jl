@@ -1,3 +1,4 @@
+
 function load_twix2(filename)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
@@ -6,10 +7,15 @@ function load_twix2(filename)
         m1,m2 = read(io, UInt32, 2)
         seek(io, 0)
         if m1 == 0 && m2 < 64
-            load_twix_vd(io)
+            header_sections,acquisitions = load_twix_vd(io)
         else
             error("TWIX VB not supported - use suspect.py instead")
         end
+        # For now parse the MeasYaps section as it's is the easiest to parse and
+        # contains parameters relevant to downstream interpretation by the ICE
+        # program (...I think?)
+        metadata = parse_header_yaps(header_sections["MeasYaps"])
+        metadata,acquisitions
     end
 end
 
@@ -20,7 +26,53 @@ function read_zero_packed_string(io, length)
     String(data[1:strend])
 end
 
-# The following is mostly a direct port of the twix reader in suspect.py.
+struct Acquisition
+    meas_uid                    ::UInt32
+    scan_counter                ::UInt32
+    time_stamp                  ::UInt32
+    pmu_time_stamp              ::UInt32
+    system_type                 ::UInt16
+    # ptab?
+    ptab_pos_delay              ::UInt16
+    ptab_pos_x                  ::UInt32
+    ptab_pos_y                  ::UInt32
+    ptab_pos_z                  ::UInt32
+    # Flags
+    acq_end                     ::Bool
+    rt_feedback                 ::Bool
+    hp_feedback                 ::Bool
+    sync_data                   ::Bool
+    raw_data_correction         ::Bool
+    ref_phase_stab_scan         ::Bool
+    phase_stab_scan             ::Bool
+    sign_rev                    ::Bool
+    phase_correction            ::Bool
+    pat_ref_scan                ::Bool
+    pat_ref_ima_scan            ::Bool
+    reflect                     ::Bool
+    noise_adj_scan              ::Bool
+    # Raw data size
+    num_samples                 ::UInt16
+    num_channels                ::UInt16
+    loop_counters               ::SVector{14,UInt16}
+    # 
+    cut_off_data                ::UInt32
+    kspace_centre_column        ::UInt16
+    coil_select                 ::UInt16
+    readout_offcentre           ::UInt32
+    time_since_rf               ::UInt32
+    kspace_centre_line_num      ::UInt16
+    kspace_centre_partition_num ::UInt16
+    slice_position              ::SVector{7,Float32}
+    ice_program_params          ::SVector{24,UInt16}
+    reserved_params             ::SVector{4,UInt16}
+    application_counter         ::UInt16
+    application_mask            ::UInt16
+    # Measurement data nchans × npoints
+    data::Matrix{Complex64}
+end
+
+# The following is inspired by the twix reader in suspect.py.
 function load_twix_vd(io)
     twix_id, num_measurements = read(io, Int32, 2)
     # vd file can contain multiple measurements, but we only want the MRS.
@@ -29,22 +81,18 @@ function load_twix_vd(io)
 
     # measurement headers are each 152 bytes at start of segment
     seek(io, 8 + 152 * measurement_index)
-    meas_id, file_id = read(io, Int32, 2)
-    offset, length = read(io, Int64, 2)
+    meas_uid, file_id = read(io, Int32, 2)
+    meas_offset, meas_length = read(io, Int64, 2)
     patient_name = read_zero_packed_string(io, 64)
     protocol_name = read_zero_packed_string(io, 64)
 
     # offset points to where the actual data is in the file
-    seek(io, offset)
+    seek(io, meas_offset)
 
     header_size = read(io, UInt32)
-    # suspect.py uses a latin-1 conversion, but some of the header is binary.
-    # OTOH, wrapping with a `String` here assumes utf-8, which is probably
-    # equally incorrect...  Both work for some simple regex matching of the
-    # ascii parts however.
-    header = String(read(io, header_size - sizeof(UInt32)))
+    header      = read(io, header_size - sizeof(UInt32))
 
-    scans = Any[]
+    acquisitions = Acquisition[]
     # read each scan until we hit the acq_end flag
     while true
         # the first four bytes contain some composite information
@@ -52,6 +100,7 @@ function load_twix_vd(io)
         DMA_length = temp & (2^26 - 1)
         pack_flag = Bool((temp >> 25) & 1)
         PCI_rx = temp >> 26
+        #@show DMA_length pack_flag PCI_rx
 
         iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
         meas_uid, scan_counter, time_stamp, pmu_time_stamp = read(iob, UInt32, 4)
@@ -79,12 +128,21 @@ function load_twix_vd(io)
         end
 
         # there are some data frames that contain auxilliary data, we ignore those for now
+        #=
         if rt_feedback || hp_feedback || phase_correction || noise_adj_scan || sync_data
             continue
         end
+        =#
 
-        num_samples, num_channels = read(iob, UInt16, 2)
-        loop_counters = read(iob, UInt16, 14)
+        num_samples, num_channels = read(iob, SVector{2,UInt16})
+        # TODO: Ordering of loop counters have changed between software versions!!
+        # 
+        # read_meas_dat_mdh_binary__alt.m Lists the ordering of the loop counters as
+        # line,acquisition,slice,partition,echo,phase,repetition,set,seg,ida,idb,idc,idd,ide.
+        #
+        # It looks like this was right as of software version D11, but changed
+        # in a later version (at least set & repetition were swapped) (FIXME!)
+        loop_counters = read(iob, SVector{14,UInt16})
 
         #@show Int(num_samples) Int(num_channels)
         #@show Int.(loop_counters)
@@ -96,20 +154,22 @@ function load_twix_vd(io)
         time_since_rf               = read(iob, UInt32)
         kspace_centre_line_num      = read(iob, UInt16)
         kspace_centre_partition_num = read(iob, UInt16)
-        slice_position              = read(iob, Float32, 7)
-        ice_program_params          = read(iob, UInt16, 24)
-        reserved_params             = read(iob, UInt16, 4)
+        slice_position              = read(iob, SVector{7,Float32})
+        ice_program_params          = read(iob, SVector{24,UInt16})
+        reserved_params             = read(iob, SVector{4,UInt16})
         application_counter         = read(iob, UInt16)
         application_mask            = read(iob, UInt16)
-        crc = read(iob, UInt32)
+        crc                         = read(iob, UInt32)
 
-        fid_start_offset = ice_program_params[5]
-        num_dummy_points = reserved_params[1]
-        fid_start = fid_start_offset + num_dummy_points
-        np = 2^floor(Int, log2(num_samples - fid_start))
+        #fid_start_offset = Int(ice_program_params[5])
+        #num_dummy_points = Int(reserved_params[1])
+        #fid_start = fid_start_offset + num_dummy_points
+        # Suspect slices the raw data as follows. Why!?  (Is this specific to
+        # Siemens SVS program?)
+        #np = 2^floor(Int, log2(num_samples - fid_start))
 
         # read the data for each channel in turn
-        scan_data = zeros(Complex64, (num_channels, np))
+        data = zeros(Complex64, (num_channels, num_samples))
         for channel_index = 1:num_channels
             # start with the header
             dma_length    = read(iob, UInt32)
@@ -121,24 +181,57 @@ function load_twix_vd(io)
             channel_id    = read(iob, UInt16)
                             read(iob, UInt16) # skip
                             read(iob, UInt32) # skip
-            #@show sequence_time
-            #@show channel_id
-
             # Now the data itself
             raw_data = read(iob, Complex64, num_samples)
             # For some reason, suspect conjugates the raw sample data (perhaps
-            # to satisfy its quadrature detection convention?)
-            scan_data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
+            # to satisfy its quadrature convention?)
+            #data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
+            data[channel_index,:] .= raw_data
         end
-        push!(scans, (loop_counters, scan_data))
+        push!(acquisitions, (Acquisition(
+            meas_uid, scan_counter, time_stamp, pmu_time_stamp,
+            system_type, ptab_pos_delay, ptab_pos_x, ptab_pos_y, ptab_pos_z,
+            acq_end, rt_feedback, hp_feedback, sync_data, raw_data_correction,
+            ref_phase_stab_scan, phase_stab_scan, sign_rev, phase_correction,
+            pat_ref_scan, pat_ref_ima_scan, reflect, noise_adj_scan,
+            num_samples, num_channels, loop_counters,
+            cut_off_data, kspace_centre_column, coil_select, readout_offcentre,
+            time_since_rf, kspace_centre_line_num, kspace_centre_partition_num, slice_position,
+            ice_program_params, reserved_params, application_counter, application_mask,
+            data)))
     end
-    scans
+    parse_twix_header_sections(IOBuffer(header)), acquisitions
 end
 
 
-function parse_twix_header(header)
-    # The twix "header" is a big mix of ASCII and binary data.  The ASCII data
-    # is a mixture of psuedo-json like structured configuration data, and more
-    # INI-like output in the "MeasYaps ASCCONV" section
+function parse_twix_header_sections(io)
+    # The VD twix header is a list of header sections containing ascii data but
+    # connected with binary section sizes.
+    #
+    # Here's some (typical?) section names:
+    # Config, Dicom, Meas, MeasYaps, Phoenix, Spice
+    num_sec = read(io, UInt32)
+    sections = Dict{String,String}()
+    for sec_index = 1:num_sec
+        sec_name    = String(readuntil(io, '\0')[1:end-1])
+        sec_size    = read(io, UInt32)
+        sec_content = read(io, sec_size)
+        if sec_content[end] == 0
+            sec_content = sec_content[1:end-1]
+        end
+        sections[sec_name] = String(sec_content)
+    end
+    sections
 end
 
+function parse_header_yaps(yaps)
+    metadata = Dict{String,Any}()
+    for line in split(yaps, '\n')
+        m = match(r"^([^#\s]+)\s*=\s*(\S+)\s*$", line)
+        if m != nothing
+            # Cheat a bit by using the julia parser for the RHS
+            metadata[m[1]] = parse(m[2])
+        end
+    end
+    metadata
+end

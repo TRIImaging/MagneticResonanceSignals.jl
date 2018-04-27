@@ -3,6 +3,7 @@ module TriMRS
 # package code goes here
 
 using MicroLogging
+using StaticArrays
 
 include("FIDData.jl")
 

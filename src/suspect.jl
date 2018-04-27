@@ -38,6 +38,8 @@ function combine_channels(channel_data)
 end
 
 """
+    get_fid(fids, t1_index, repetition)
+
 Get the FID for a given `repetition` and `t1_index`, performing channel
 combination.
 """
