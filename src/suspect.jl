@@ -1,9 +1,5 @@
 # Wrappers for python suspect library
 
-using PyCall
-
-@pyimport suspect as suspect
-
 #-------------------------------------------------------------------------------
 # IO
 

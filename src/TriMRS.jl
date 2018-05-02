@@ -1,3 +1,5 @@
+__precompile__()
+
 module TriMRS
 
 # package code goes here
@@ -14,6 +16,12 @@ include("processing.jl")
 # Functionality from python suspect
 include("suspect.jl")
 
+export
+    MRExperiment,
+    load_twix_raw,
+    meta_search,
+    timestamp
+
 export FIDData,
     get_fid,
     fid_length,
@@ -26,5 +34,13 @@ export FIDData,
 export load_twix,
     zero_pad,
     combine_channels
+
+using PyCall
+
+suspect = nothing
+function __init__()
+    # @pyimport suspect as suspect
+    global suspect = pywrap(pyimport("suspect"))
+end
 
 end # module

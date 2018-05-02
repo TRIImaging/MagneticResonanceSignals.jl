@@ -1,5 +1,5 @@
 
-function load_twix2(filename)
+function load_twix_raw(filename)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         # Detect wether this is a twix file from VB or VD software version,
@@ -9,13 +9,13 @@ function load_twix2(filename)
         if m1 == 0 && m2 < 64
             header_sections,acquisitions = load_twix_vd(io)
         else
-            error("TWIX VB not supported - use suspect.py instead")
+            error("TWIX VB not supported - see siemens_to_ismrmd or suspect for alternative tools")
         end
         # For now parse the MeasYaps section as it's is the easiest to parse and
         # contains parameters relevant to downstream interpretation by the ICE
         # program (...I think?)
         metadata = parse_header_yaps(header_sections["MeasYaps"])
-        metadata,acquisitions
+        MRExperiment(metadata, acquisitions)
     end
 end
 
@@ -70,6 +70,48 @@ struct Acquisition
     application_mask            ::UInt16
     # Measurement data nchans × npoints
     data::Matrix{Complex64}
+end
+
+"""
+    MRExperiment(metadata)
+
+Container for data from a magnetic resonance experiment: the result of a series
+of excitations and acquired free induction decays.
+"""
+struct MRExperiment
+    metadata
+    data::Vector{Acquisition}
+end
+
+"""
+Get labels for loop counters.
+
+TODO: Need to verify how this depends on software version number
+"""
+counter_labels(::MRExperiment) =
+    ["line", "acquisition", "slice", "partition", "echo",
+     "phase", "repetition", "set", "seg",
+     "ida", "idb", "idc", "idd", "ide"]
+
+timestamp(expt::MRExperiment) = timestamp.(expt.data)
+# 2.5 ms per count... is this reliable?
+timestamp(acq::Acquisition) = 0.0025 * acq.time_stamp
+
+function Base.show(io::IO, expt::MRExperiment)
+    tmin,tmax = extrema(timestamp(expt))
+    print(io, """
+          MRExperiment with $(length(expt.data)) acquisitions; duration $(round(tmax-tmin,2)) s.
+          Nonzero loop counters:
+          """)
+    counters = [a.loop_counters for a in expt.data]
+    sep = ""
+    for (i,label) in enumerate(counter_labels(expt))
+        cntmin,cntmax = extrema(c[i] for c in counters)
+        if cntmin != 0 || cntmax != 0
+            print(io, sep, "  index $i in [$cntmin,$cntmax]   ($label)")
+            sep = "\n"
+        end
+    end
 end
 
 # The following is inspired by the twix reader in suspect.py.
@@ -234,4 +276,17 @@ function parse_header_yaps(yaps)
         end
     end
     metadata
+end
+
+"""
+    meta_search(pattern, metadata)
+
+Search through MR experiment `metadata` for a given regular expression,
+`pattern` or for a case insensitive string `pattern`.
+"""
+function meta_search(pattern, expt::MRExperiment)
+    Dict(k=>v for (k,v) in expt.metadata if ismatch(pattern, k))
+end
+function meta_search(pattern::String, expt::MRExperiment)
+    Dict(k=>v for (k,v) in expt.metadata if ismatch(Regex(pattern,"i"), k))
 end
