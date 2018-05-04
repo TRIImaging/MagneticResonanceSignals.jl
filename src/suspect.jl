@@ -4,20 +4,20 @@
 # IO
 
 """
-    load_twix(file_name)
+    load_twix_suspect(file_name)
 
-Load data from Siemens TWIX .dat format, returning it in an FIDData object.
+Load data from Siemens TWIX .dat format using suspect
 """
-function load_twix(args...)
+function load_twix_suspect(args...)
     # TODO: Can we load the time increment data in t1 direction from here too?
     # Answer... no, suspect doesn't support it!
     pyob = pycall(suspect.io[:load_twix], PyObject, args...)
     data = convert(PyAny, pyob)
-    FIDData(data,
-            pyob[:f0],
-            pyob[:dt],
-            pyob[:te],
-            metadata=pyob[:metadata])
+    SpectroData(data,
+                pyob[:f0],
+                [pyob[:dt], 0.0008],  # ASSUMED srcosy default t1 increment!!!
+                te=1e-3*pyob[:te],
+                metadata=pyob[:metadata])
 end
 
 
@@ -39,7 +39,7 @@ end
 Get the FID for a given `repetition` and `t1_index`, performing channel
 combination.
 """
-function get_fid(fids::FIDData, t1_index, repetition)
+function get_fid(fids::SpectroData, t1_index, repetition)
     combine_channels(fids.data[repetition,t1_index,:,:])
 end
 

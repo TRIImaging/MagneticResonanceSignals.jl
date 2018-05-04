@@ -2,15 +2,14 @@ __precompile__()
 
 module TriMRS
 
-# package code goes here
-
 using MicroLogging
 using StaticArrays
 
-include("FIDData.jl")
-
 include("io_twix.jl")
 include("io_felix.jl")
+
+include("FIDData.jl")
+
 include("processing.jl")
 
 # Functionality from python suspect
@@ -22,7 +21,7 @@ export
     meta_search,
     timestamp
 
-export FIDData,
+export SpectroData,
     get_fid,
     fid_length,
     hertz_to_ppm,

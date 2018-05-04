@@ -101,6 +101,8 @@ function Base.show(io::IO, expt::MRExperiment)
     tmin,tmax = extrema(timestamp(expt))
     print(io, """
           MRExperiment with $(length(expt.data)) acquisitions; duration $(round(tmax-tmin,2)) s.
+          protocol:
+            $(expt.metadata["tProtocolName"])
           Nonzero loop counters:
           """)
     counters = [a.loop_counters for a in expt.data]
