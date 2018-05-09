@@ -99,11 +99,13 @@ timestamp(acq::Acquisition) = 0.0025 * acq.time_stamp
 
 function Base.show(io::IO, expt::MRExperiment)
     tmin,tmax = extrema(timestamp(expt))
+    protocol = get(expt.metadata,"tProtocolName","Unknown")
+    seqname = get(expt.metadata,"tSequenceFileName","Unknown")
     print(io, """
-          MRExperiment with $(length(expt.data)) acquisitions; duration $(round(tmax-tmin,2)) s.
-          protocol:
-            $(expt.metadata["tProtocolName"])
-          Nonzero loop counters:
+          MRExperiment with $(length(expt.data)) acquisitions; duration $(round(tmax-tmin,2)) s,
+            tProtocolName     = $protocol
+            tSequenceFileName = $seqname
+          Loop counter summary:
           """)
     counters = [a.loop_counters for a in expt.data]
     sep = ""
