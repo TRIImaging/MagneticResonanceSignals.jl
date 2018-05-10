@@ -4,9 +4,11 @@ module TriMRS
 
 using MicroLogging
 using StaticArrays
+using DataStructures
 
 include("io_twix.jl")
 include("io_felix.jl")
+include("io_rda.jl")
 
 include("FIDData.jl")
 
@@ -30,7 +32,9 @@ export SpectroData,
     frequency_axis,
     frequency_axis_ppm
 
-export load_twix,
+export load_rda,
+    save_rda,
+    load_twix,
     zero_pad,
     combine_channels
 
