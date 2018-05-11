@@ -273,10 +273,15 @@ end
 function parse_header_yaps(yaps)
     metadata = Dict{String,Any}()
     for line in split(yaps, '\n')
-        m = match(r"^([^#\s]+)\s*=\s*(\S+)\s*$", line)
+        if startswith(line, "### ASCCONV BEGIN") || startswith(line, "### ASCCONV END") || isempty(line)
+            continue
+        end
+        m = match(r"^([^#\s]+)\s*=\s*(.*?)\s*$", line)
         if m != nothing
             # Cheat a bit by using the julia parser for the RHS
             metadata[m[1]] = parse(m[2])
+        else
+            @warn "could not match YAPS header line \"$(Vector{UInt8}(line))\""
         end
     end
     metadata
