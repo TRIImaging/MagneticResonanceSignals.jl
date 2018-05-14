@@ -229,10 +229,15 @@ function load_twix_vd(io)
                             read(iob, UInt32) # skip
             # Now the data itself
             raw_data = read(iob, Complex64, num_samples)
-            # For some reason, suspect conjugates the raw sample data (perhaps
-            # to satisfy its quadrature convention?)
+            # NB: The quadrature convetion used in twix is the opposite of what
+            # we'd like for spectro: We want the positive frequencies after a
+            # simple fft to correspond to a positive offset from the
+            # spectrometer reference frequency. But in twix they are negative
+            # so directly doing an fft of the raw data would flip the frequency
+            # axis.  We add a conj to standardize the convention.
+            data[channel_index,:] .= conj.(raw_data)
+            # NB: Suspect takes the following:
             #data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
-            data[channel_index,:] .= raw_data
         end
         push!(acquisitions, (Acquisition(
             meas_uid, scan_counter, time_stamp, pmu_time_stamp,
