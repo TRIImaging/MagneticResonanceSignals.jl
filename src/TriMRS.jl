@@ -15,6 +15,11 @@ include("FIDData.jl")
 
 include("processing.jl")
 
+if isdir(Pkg.dir("PyPlot"))
+    using PyPlot
+    include("plotting.jl")
+end
+
 # Functionality from python suspect
 include("suspect.jl")
 
