@@ -9,6 +9,7 @@ using DataStructures
 include("io_twix.jl")
 include("io_felix.jl")
 include("io_rda.jl")
+include("MRAxis.jl")
 
 include("FIDData.jl")
 
@@ -25,7 +26,10 @@ export
 
 export SpectroData,
     get_fid,
-    fid_length,
+    fid_length
+
+export
+    MRAxis,
     hertz_to_ppm,
     ppm_to_hertz,
     time_axis,
