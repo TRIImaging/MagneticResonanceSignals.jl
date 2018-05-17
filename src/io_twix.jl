@@ -1,31 +1,9 @@
+#-------------------------------------------------------------------------------
+# Representation of raw acquisition
 
-function load_twix_raw(filename)
-    # TWIX is little endian binary data, with ascii header
-    open(filename) do io
-        # Detect wether this is a twix file from VB or VD software version,
-        # using a magic number heuristic from suspect.py
-        m1,m2 = read(io, UInt32, 2)
-        seek(io, 0)
-        if m1 == 0 && m2 < 64
-            header_sections,acquisitions = load_twix_vd(io)
-        else
-            error("TWIX VB not supported - see siemens_to_ismrmd or suspect for alternative tools")
-        end
-        # For now parse the MeasYaps section as it's is the easiest to parse and
-        # contains parameters relevant to downstream interpretation by the ICE
-        # program (...I think?)
-        metadata = parse_header_yaps(header_sections["MeasYaps"])
-        MRExperiment(metadata, acquisitions)
-    end
-end
-
-function read_zero_packed_string(io, length)
-    data = read(io, length)
-    firstnull = findfirst(data, 0)
-    strend = firstnull > 0 ? firstnull-1 : firstnull = length(data)
-    String(data[1:strend])
-end
-
+"""
+Data from a single acquisition by a Siemens MR scanner (software version VD?)
+"""
 struct Acquisition
     meas_uid                    ::UInt32
     scan_counter                ::UInt32
@@ -75,8 +53,8 @@ end
 """
     MRExperiment(metadata)
 
-Container for data from a magnetic resonance experiment: the result of a series
-of excitations and acquired free induction decays.
+Container for data from a magnetic resonance experiment: a series of
+excitations and acquired free induction decays.
 """
 struct MRExperiment
     metadata
@@ -117,6 +95,43 @@ function Base.show(io::IO, expt::MRExperiment)
         end
     end
 end
+
+#-------------------------------------------------------------------------------
+# Functions for loading Siemens TWIX data
+
+"""
+    load_twix_raw(filename)
+
+Load raw Siemens twix ".dat" format, producing an `MRExperiment` containing a
+sequence of acqisitions.
+"""
+function load_twix_raw(filename)
+    # TWIX is little endian binary data, with ascii header
+    open(filename) do io
+        # Detect whether this is a twix file from VB or VD software version,
+        # using a magic number heuristic from suspect.py
+        m1,m2 = read(io, UInt32, 2)
+        seek(io, 0)
+        if m1 == 0 && m2 < 64
+            header_sections,acquisitions = load_twix_vd(io)
+        else
+            error("TWIX VB not supported - see siemens_to_ismrmd or suspect for alternative tools")
+        end
+        # For now parse the MeasYaps section as it's is the easiest to parse and
+        # contains parameters relevant to downstream interpretation by the ICE
+        # program (...I think?)
+        metadata = parse_header_yaps(header_sections["MeasYaps"])
+        MRExperiment(metadata, acquisitions)
+    end
+end
+
+function read_zero_packed_string(io, length)
+    data = read(io, length)
+    firstnull = findfirst(data, 0)
+    strend = firstnull > 0 ? firstnull-1 : firstnull = length(data)
+    String(data[1:strend])
+end
+
 
 # The following is inspired by the twix reader in suspect.py.
 function load_twix_vd(io)
