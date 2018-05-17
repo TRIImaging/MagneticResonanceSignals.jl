@@ -100,12 +100,16 @@ end
 # Functions for loading Siemens TWIX data
 
 """
-    load_twix_raw(filename)
+    load_twix_raw(filename; acquisition_filter=(acq)->true)
 
 Load raw Siemens twix ".dat" format, producing an `MRExperiment` containing a
 sequence of acqisitions.
+
+For large files, acquisitions may be filtered out during file loading by
+providing a predicate `acquisition_filter(acq)` which returns true when `acq`
+should be kept.  By default, all acquisitions are retained.
 """
-function load_twix_raw(filename)
+function load_twix_raw(filename; acquisition_filter=(acq)->true)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         # Detect whether this is a twix file from VB or VD software version,
@@ -113,7 +117,7 @@ function load_twix_raw(filename)
         m1,m2 = read(io, UInt32, 2)
         seek(io, 0)
         if m1 == 0 && m2 < 64
-            header_sections,acquisitions = load_twix_vd(io)
+            header_sections,acquisitions = load_twix_vd(io, acquisition_filter)
         else
             error("TWIX VB not supported - see siemens_to_ismrmd or suspect for alternative tools")
         end
@@ -134,7 +138,7 @@ end
 
 
 # The following is inspired by the twix reader in suspect.py.
-function load_twix_vd(io)
+function load_twix_vd(io, acquisition_filter)
     twix_id, num_measurements = read(io, Int32, 2)
     # vd file can contain multiple measurements, but we only want the MRS.
     # Assume that the MRS is the last measurement.
@@ -254,7 +258,7 @@ function load_twix_vd(io)
             # NB: Suspect takes the following:
             #data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
         end
-        push!(acquisitions, (Acquisition(
+        acq = Acquisition(
             meas_uid, scan_counter, time_stamp, pmu_time_stamp,
             system_type, ptab_pos_delay, ptab_pos_x, ptab_pos_y, ptab_pos_z,
             acq_end, rt_feedback, hp_feedback, sync_data, raw_data_correction,
@@ -264,7 +268,10 @@ function load_twix_vd(io)
             cut_off_data, kspace_centre_column, coil_select, readout_offcentre,
             time_since_rf, kspace_centre_line_num, kspace_centre_partition_num, slice_position,
             ice_program_params, reserved_params, application_counter, application_mask,
-            data)))
+            data)
+        if acquisition_filter(acq)
+            push!(acquisitions, acq)
+        end
     end
     parse_twix_header_sections(IOBuffer(header)), acquisitions
 end
