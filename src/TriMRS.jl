@@ -20,8 +20,21 @@ if isdir(Pkg.dir("PyPlot"))
     include("plotting.jl")
 end
 
-# Functionality from python suspect
-include("suspect.jl")
+suspect = nothing
+if isdir(Pkg.dir("PyCall"))
+    using PyCall
+    suspect = try
+        pyimport("suspect")
+    end
+end
+
+const has_suspect = suspect != nothing
+
+if suspect != nothing
+    # Functionality from the python suspect library
+    include("suspect.jl")
+end
+suspect = nothing # See __init__
 
 export
     MRExperiment,
@@ -47,12 +60,12 @@ export load_rda,
     zero_pad,
     combine_channels
 
-using PyCall
-
-suspect = nothing
 function __init__()
-    # @pyimport suspect as suspect
-    global suspect = pywrap(pyimport("suspect"))
+    if has_suspect
+        global suspect = try
+            pywrap(pyimport("suspect"))
+        end
+    end
 end
 
 end # module
