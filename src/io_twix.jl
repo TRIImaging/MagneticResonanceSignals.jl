@@ -234,7 +234,7 @@ function load_twix_vd(io, acquisition_filter)
         #np = 2^floor(Int, log2(num_samples - fid_start))
 
         # read the data for each channel in turn
-        data = zeros(Complex64, (num_channels, num_samples))
+        data = zeros(Complex64, (num_samples, num_channels))
         for channel_index = 1:num_channels
             # start with the header
             dma_length    = read(iob, UInt32)
@@ -254,7 +254,7 @@ function load_twix_vd(io, acquisition_filter)
             # spectrometer reference frequency. But in twix they are negative
             # so directly doing an fft of the raw data would flip the frequency
             # axis.  We add a conj to standardize the convention.
-            data[channel_index,:] .= conj.(raw_data)
+            data[:,channel_index] .= conj.(raw_data)
             # NB: Suspect takes the following:
             #data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
         end

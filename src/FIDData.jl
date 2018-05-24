@@ -52,7 +52,7 @@ function SpectroData(expt::MRExperiment)
         for avg_ind = avg_indmin:avg_indmax
             # FIXME: Figure out what to do with dummy samples at the start of
             # data
-            data[avg_ind,t1_ind,:,:] .= indexed_acqs[(t1_ind,avg_ind)].data
+            data[avg_ind,t1_ind,:,:] .= transpose(indexed_acqs[(t1_ind,avg_ind)].data)
         end
     end
     SpectroData(data, f0, [dt1,dt2], te=te, protocol_name=protocol_name)

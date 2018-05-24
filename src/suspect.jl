@@ -29,8 +29,9 @@ end
 Combine coil channels using SVD based weightings
 """
 function combine_channels(channel_data)
-    weights = suspect.processing[:channel_combination][:svd_weighting](channel_data)
-    suspect.processing[:channel_combination][:combine_channels](channel_data, weights)
+    d = transpose(channel_data)
+    weights = suspect.processing[:channel_combination][:svd_weighting](d)
+    suspect.processing[:channel_combination][:combine_channels](d, weights)
 end
 
 """
