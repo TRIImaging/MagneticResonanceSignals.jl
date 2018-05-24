@@ -100,7 +100,7 @@ end
 # Functions for loading Siemens TWIX data
 
 """
-    load_twix_raw(filename; acquisition_filter=(acq)->true)
+    load_twix(filename; acquisition_filter=(acq)->true)
 
 Load raw Siemens twix ".dat" format, producing an `MRExperiment` containing a
 sequence of acqisitions.
@@ -109,7 +109,7 @@ For large files, acquisitions may be filtered out during file loading by
 providing a predicate `acquisition_filter(acq)` which returns true when `acq`
 should be kept.  By default, all acquisitions are retained.
 """
-function load_twix_raw(filename; acquisition_filter=(acq)->true)
+function load_twix(filename; acquisition_filter=(acq)->true)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         # Detect whether this is a twix file from VB or VD software version,

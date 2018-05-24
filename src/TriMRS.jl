@@ -22,7 +22,6 @@ end
 
 export
     MRExperiment,
-    load_twix_raw,
     meta_search,
     timestamp
 
@@ -46,5 +45,6 @@ export
     zero_pad,
     combine_channels
 
+@deprecate load_twix_raw load_twix
 
 end # module
