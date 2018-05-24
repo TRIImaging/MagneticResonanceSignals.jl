@@ -43,6 +43,7 @@ export load_rda,
 
 export
     zero_pad,
+    pca_channel_combiner,
     combine_channels
 
 @deprecate load_twix_raw load_twix
