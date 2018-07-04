@@ -1,3 +1,5 @@
+# TODO: Examine GAMMA, which has a whole pile of code (1700 lines of C++) for
+# IO in Felix file format.
 
 """
 Read a spectrum file in Felix ".mat" format
