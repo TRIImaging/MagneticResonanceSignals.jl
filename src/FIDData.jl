@@ -45,17 +45,15 @@ function SpectroData(expt::MRExperiment)
     avg_indmin,avg_indmax = extrema(i[2] for i in keys(indexed_acqs))
     @assert t1_indmin == 1 && avg_indmin == 1
 
-    # FIXME: For efficiency, would be better to have the first dimension as the
-    # FID dimension, shouldn't we?
-    data = zeros(eltype(expt.data[1].data), (avg_indmax, t1_indmax, size(expt.data[1].data)...))
+    data = zeros(eltype(expt.data[1].data), (size(expt.data[1].data)..., avg_indmax, t1_indmax))
     for t1_ind = t1_indmin:t1_indmax
         for avg_ind = avg_indmin:avg_indmax
             # FIXME: Figure out what to do with dummy samples at the start of
             # data
-            data[avg_ind,t1_ind,:,:] .= transpose(indexed_acqs[(t1_ind,avg_ind)].data)
+            data[:,:,avg_ind,t1_ind] .= indexed_acqs[(t1_ind,avg_ind)].data
         end
     end
-    SpectroData(data, f0, [dt1,dt2], te=te, protocol_name=protocol_name)
+    SpectroData(data, f0, [dt1,dt2], te=te, protocol_name=protocol_name, metadata=expt.metadata)
 end
 
 function Base.show(io::IO, fids::SpectroData)
@@ -68,10 +66,10 @@ function Base.show(io::IO, fids::SpectroData)
                  fid length   = $(size(data,4))
                  dt           = $(fids.dt) s
                  f0           = $(fids.f0) Hz
-                 n_t1         = $(size(data,2))
-                 n_t2         = $(size(data,4))
-                 num_channels = $(size(data,3))
-                 num_average  = $(size(data,1))
+                 n_t2         = $(size(data,1))
+                 num_channels = $(size(data,2))
+                 num_average  = $(size(data,3))
+                 n_t1         = $(size(data,4))
               auxiliary:
                  ppm0             = $(fids.ppm0)
                  length(metadata) = $(length(fids.metadata))
@@ -85,7 +83,7 @@ end
 Get the time domain FID for a given `repetition`, `t1_index` and `channel`.
 """
 function get_fid(fids::SpectroData, t1_index, repetition, channel)
-    fids.data[repetition,t1_index,channel,:]
+    fids.data[:,channel,repetition,t1_index]
 end
 
 """
@@ -93,48 +91,12 @@ end
 
 Return the number of samples in each FID stored in `fids`.
 """
-fid_length(fids::SpectroData) = size(fids.data)[end]
+fid_length(fids::SpectroData) = size(fids.data,1)
 
-"""
-    hertz_to_ppm(fids, f)
-
-Converts a frequency in Hz to a relative frequency in PPM.
-"""
-hertz_to_ppm(fids::SpectroData, f) = fids.ppm0 - f/fids.f0
-
-"""
-    ppm_to_hertz(fids, ppm)
-
-Converts a relative frequency in PPM to a frequency in Hz.
-"""
-ppm_to_hertz(fids::SpectroData, ppm) = (fids.ppm0 - ppm)*fids.f0
-
-"""
-    time_axis(fids, dim=2)
-
-Get the time for the FID samples, starting from 0 s
-"""
-time_axis(fids::SpectroData, dim=2) = fids.dt[dim]*(0:fid_length(fids)-1)
-
-"""
-    frequency_axis(fids, dim=2; pad=1)
-
-Get the frequency axis for the FID samples, in Hz, when fourier transformed and shifted.
-
-Set `pad` to a positive integer to get the frequency axis for a padded FID of
-length `pad*fid_length(fids)`.
-"""
-function frequency_axis(fids::SpectroData, dim=2; pad=1)
-    N = pad*fid_length(fids)
-    df = 1/fids.dt[dim]
-    df*((0:N-1)/N - 0.5)
+function MRAxis(fids::SpectroData, dim::Integer; kws...)
+    npoints = (dim == 1) ? size(fids.data,4) :
+              (dim == 2) ? size(fids.data,1) :
+              throw(ArgumentError("COSY has only two dimensions, but dim=$dim was passed"))
+    MRAxis(fids.f0, fids.dt[dim], npoints, kws...)
 end
-
-"""
-    frequency_axis_ppm(fids; pad=1)
-
-Get the frequency axis for FID samples, in ppm
-"""
-frequency_axis_ppm(fids::SpectroData, dim=2; pad=1) = hertz_to_ppm.(fids, frequency_axis(fids,dim, pad=pad))
-
 
