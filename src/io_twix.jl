@@ -51,7 +51,7 @@ struct Acquisition
 end
 
 """
-    MRExperiment(metadata)
+    MRExperiment(metadata, acq_data)
 
 Container for data from a magnetic resonance experiment: a series of
 excitations and acquired free induction decays.
@@ -99,6 +99,20 @@ end
 #-------------------------------------------------------------------------------
 # Functions for loading Siemens TWIX data
 
+function check_twix_type(io)
+    # Detect whether this is a twix file from VB or VD software version,
+    # using a magic number heuristic from suspect.py
+    m1,m2 = read(io, UInt32, 2)
+    seek(io, 0)
+    if m1 == 0 && m2 < 64
+        return :vd
+    else
+        error("""
+              Unknown TWIX type (TWIX VB?  Or not a TWIX file?).
+              You could try siemens_to_ismrmd or suspect.py as alternatives.""")
+    end
+end
+
 """
     load_twix(filename; acquisition_filter=(acq)->true)
 
@@ -112,20 +126,35 @@ should be kept.  By default, all acquisitions are retained.
 function load_twix(filename; acquisition_filter=(acq)->true)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
-        # Detect whether this is a twix file from VB or VD software version,
-        # using a magic number heuristic from suspect.py
-        m1,m2 = read(io, UInt32, 2)
-        seek(io, 0)
-        if m1 == 0 && m2 < 64
-            header_sections,acquisitions = load_twix_vd(io, acquisition_filter)
-        else
-            error("TWIX VB not supported - see siemens_to_ismrmd or suspect for alternative tools")
-        end
+        check_twix_type(io)
+        header_sections,acquisitions = load_twix_vd(io, acquisition_filter)
         # For now parse the MeasYaps section as it's is the easiest to parse and
         # contains parameters relevant to downstream interpretation by the ICE
         # program (...I think?)
         metadata = parse_header_yaps(header_sections["MeasYaps"])
         MRExperiment(metadata, acquisitions)
+    end
+end
+
+"""
+    dump_twix_headers(filename, dump_dir)
+
+Dump twix header sections verbatim into files `dump_dir/sect_name`, one for
+each section.  Mostly useful for debugging.
+"""
+function dump_twix_headers(filename, dump_dir)
+    if !isdir(dump_dir)
+        mkdir(dump_dir)
+    end
+    # TWIX is little endian binary data, with ascii header
+    open(filename) do io
+        check_twix_type(io)
+        header_sections,acquisitions = load_twix_vd(io, (acq)->false)
+        for (sect_name,sect_data) in header_sections
+            open(joinpath(dump_dir, sect_name), "w") do out
+                write(out, sect_data)
+            end
+        end
     end
 end
 
