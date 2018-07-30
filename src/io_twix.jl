@@ -71,18 +71,47 @@ counter_labels(::MRExperiment) =
      "phase", "repetition", "set", "seg",
      "ida", "idb", "idc", "idd", "ide"]
 
+function epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
+    dts = []
+    for (k,str) in meta_search(search_key, expt)
+        try
+            push!(dts, DateTime(last(split(str, '.'))[1:14], dateformat"yyyymmddHHMMSS"))
+        catch
+            # There seems to commonly (always?) be an invalid datetime in the
+            # year 3000 here - just ignore that one.
+        end
+    end
+    isempty(dts) ? nothing : minimum(dts)
+end
+
 timestamp(expt::MRExperiment) = timestamp.(expt.data)
 # 2.5 ms per count... is this reliable?
 timestamp(acq::Acquisition) = 0.0025 * acq.time_stamp
 
 function Base.show(io::IO, expt::MRExperiment)
-    tmin,tmax = extrema(timestamp(expt))
+    duration = ""
+    if !isempty(expt.data)
+        tmin,tmax = extrema(timestamp(expt))
+        duration = "; duration $(round(tmax-tmin,2)) s"
+    end
     protocol = get(expt.metadata,"tProtocolName","Unknown")
     seqname = get(expt.metadata,"tSequenceFileName","Unknown")
+    tref = get(expt.metadata,"tReferenceImage0","Unknown")
+    println(io, "MRExperiment with $(length(expt.data)) acquisitions$duration,")
+    datetime = epoch(expt)
+    if datetime != nothing
+        println(io,
+         "  Scan Date         = $(Date(datetime))")
+    end
     print(io, """
-          MRExperiment with $(length(expt.data)) acquisitions; duration $(round(tmax-tmin,2)) s,
             tProtocolName     = $protocol
             tSequenceFileName = $seqname
+            tReferenceImage0  = $tref
+          """)
+    if isempty(expt.data)
+        return
+    end
+    print(io, """
           Loop counter summary:
           """)
     counters = [a.loop_counters for a in expt.data]
@@ -114,7 +143,7 @@ function check_twix_type(io)
 end
 
 """
-    load_twix(filename; acquisition_filter=(acq)->true)
+    load_twix(filename; header_only=false, acquisition_filter=(acq)->true)
 
 Load raw Siemens twix ".dat" format, producing an `MRExperiment` containing a
 sequence of acqisitions.
@@ -123,11 +152,13 @@ For large files, acquisitions may be filtered out during file loading by
 providing a predicate `acquisition_filter(acq)` which returns true when `acq`
 should be kept.  By default, all acquisitions are retained.
 """
-function load_twix(filename; acquisition_filter=(acq)->true)
+function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
+                   meas_selector=(inds)->last(inds))
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         check_twix_type(io)
-        header_sections,acquisitions = load_twix_vd(io, acquisition_filter)
+        header_sections,acquisitions = load_twix_vd(io, header_only, acquisition_filter,
+                                                    meas_selector)
         # For now parse the MeasYaps section as it's is the easiest to parse and
         # contains parameters relevant to downstream interpretation by the ICE
         # program (...I think?)
@@ -149,7 +180,7 @@ function dump_twix_headers(filename, dump_dir)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         check_twix_type(io)
-        header_sections,acquisitions = load_twix_vd(io, (acq)->false)
+        header_sections,acquisitions = load_twix_vd(io, true, (a)->true, (inds)->last(inds))
         for (sect_name,sect_data) in header_sections
             open(joinpath(dump_dir, sect_name), "w") do out
                 write(out, sect_data)
@@ -167,26 +198,32 @@ end
 
 
 # The following is inspired by the twix reader in suspect.py.
-function load_twix_vd(io, acquisition_filter)
+function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     twix_id, num_measurements = read(io, Int32, 2)
     # vd file can contain multiple measurements, but we only want the MRS.
     # Assume that the MRS is the last measurement.
-    measurement_index = num_measurements - 1
+    measurement_index = meas_selector(1:num_measurements)
 
     # measurement headers are each 152 bytes at start of segment
-    seek(io, 8 + 152 * measurement_index)
+    seek(io, 8 + 152 * (measurement_index-1))
     meas_uid, file_id = read(io, Int32, 2)
     meas_offset, meas_length = read(io, Int64, 2)
     patient_name = read_zero_packed_string(io, 64)
     protocol_name = read_zero_packed_string(io, 64)
+    @debug "Reading TWIX VD Header" meas_uid file_id patient_name protocol_name
 
     # offset points to where the actual data is in the file
     seek(io, meas_offset)
 
     header_size = read(io, UInt32)
     header      = read(io, header_size - sizeof(UInt32))
+    header_sections = parse_twix_header_sections(IOBuffer(header))
 
     acquisitions = Acquisition[]
+    if header_only
+        return header_sections, acquisitions
+    end
+
     # read each scan until we hit the acq_end flag
     while true
         # the first four bytes contain some composite information
@@ -302,7 +339,7 @@ function load_twix_vd(io, acquisition_filter)
             push!(acquisitions, acq)
         end
     end
-    parse_twix_header_sections(IOBuffer(header)), acquisitions
+    header_sections, acquisitions
 end
 
 
