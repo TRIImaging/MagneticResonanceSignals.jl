@@ -72,8 +72,12 @@ counter_labels(::MRExperiment) =
      "ida", "idb", "idc", "idd", "ide"]
 
 function epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
+    # On the IDEA forum, Eddie Auerbach suggests:
+    #   "tReferenceImage0,1,2 are the unique IDs for the 3 localizer images
+    #   used for slice prescription. In YAPS you have tFrameOfReference,
+    #   which I'm guessing is an ID for the last acquired shim phasemap."
     dts = []
-    for (k,str) in meta_search(search_key, expt)
+    for (k,str) in meta_search(expt, search_key)
         try
             push!(dts, DateTime(last(split(str, '.'))[1:14], dateformat"yyyymmddHHMMSS"))
         catch
@@ -381,14 +385,14 @@ function parse_header_yaps(yaps)
 end
 
 """
-    meta_search(pattern, metadata)
+    meta_search(metadata, pattern)
 
 Search through MR experiment `metadata` for a given regular expression,
 `pattern` or for a case insensitive string `pattern`.
 """
-function meta_search(pattern, expt::MRExperiment)
+function meta_search(expt::MRExperiment, pattern)
     Dict(k=>v for (k,v) in expt.metadata if ismatch(pattern, k))
 end
-function meta_search(pattern::String, expt::MRExperiment)
+function meta_search(expt::MRExperiment, pattern::String)
     Dict(k=>v for (k,v) in expt.metadata if ismatch(Regex(pattern,"i"), k))
 end
