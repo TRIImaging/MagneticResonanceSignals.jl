@@ -7,7 +7,7 @@ counter variation.
 function summarize_twix(expt::MRExperiment)
     acq = expt.data
     nloop = length(acq[1].loop_counters)
-    t = timestamp(expt)
+    t = scanner_time(expt)
     t = t .- t[1]
     labels = []
     for i = 1:nloop

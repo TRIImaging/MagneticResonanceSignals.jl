@@ -71,7 +71,10 @@ counter_labels(::MRExperiment) =
      "phase", "repetition", "set", "seg",
      "ida", "idb", "idc", "idd", "ide"]
 
-function epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
+"""
+Extract the date and time of the localizer images used as reference
+"""
+function ref_epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
     # On the IDEA forum, Eddie Auerbach suggests:
     #   "tReferenceImage0,1,2 are the unique IDs for the 3 localizer images
     #   used for slice prescription. In YAPS you have tFrameOfReference,
@@ -88,42 +91,69 @@ function epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
     isempty(dts) ? nothing : minimum(dts)
 end
 
-timestamp(expt::MRExperiment) = timestamp.(expt.data)
+"""
+Extract scanner software version from experiment metadata
+"""
+function software_version(expt::MRExperiment)
+    get(expt.metadata, "sProtConsistencyInfo.tBaselineString") do
+        get(expt.metadata, "sProtConsistencyInfo.tMeasuredBaselineString",nothing)
+    end
+end
+
+struct MRMetadata
+    protocol_name
+    sequence_name
+    software_version
+    ref_epoch # Epoch of localizer image
+end
+
+"""
+Get some standard MR metadata
+"""
+function standard_metadata(expt::MRExperiment)
+    protname = get(expt.metadata,"tProtocolName",nothing)
+    seqname = get(expt.metadata,"tSequenceFileName",nothing)
+    epoch = ref_epoch(expt)
+    version = software_version(expt)
+    MRMetadata(protname, seqname, version, epoch)
+end
+
+"""
+    scanner_time(acq | expt)
+
+Get internal scanner time stamp from an acquisition or sequence of timestamps
+from an experiment.
+"""
+scanner_time(expt::MRExperiment) = scanner_time.(expt.data)
 # 2.5 ms per count... is this reliable?
-timestamp(acq::Acquisition) = 0.0025 * acq.time_stamp
+scanner_time(acq::Acquisition) = 0.0025 * acq.time_stamp
 
 function Base.show(io::IO, expt::MRExperiment)
-    duration = ""
-    if !isempty(expt.data)
-        tmin,tmax = extrema(timestamp(expt))
-        duration = "; duration $(round(tmax-tmin,2)) s"
-    end
-    protocol = get(expt.metadata,"tProtocolName","Unknown")
-    seqname = get(expt.metadata,"tSequenceFileName","Unknown")
-    tref = get(expt.metadata,"tReferenceImage0","Unknown")
-    println(io, "MRExperiment with $(length(expt.data)) acquisitions$duration,")
-    datetime = epoch(expt)
-    if datetime != nothing
-        println(io,
-         "  Scan Date         = $(Date(datetime))")
-    end
+    println(io, "MRExperiment metadata:")
+    meta = standard_metadata(expt)
     print(io, """
-            tProtocolName     = $protocol
-            tSequenceFileName = $seqname
-            tReferenceImage0  = $tref
+            Protocol           = $(meta.protocol_name)
+            Sequence File Name = $(meta.sequence_name)
+            Software Version   = $(meta.software_version)
+            Reference Date     = $(meta.ref_epoch)
           """)
     if isempty(expt.data)
         return
     end
-    print(io, """
-          Loop counter summary:
-          """)
+    tmin,tmax = extrema(scanner_time(expt))
+    print(io, rstrip("""
+          Acquisition summary:
+            Number   = $(length(expt.data))
+            Duration = $(round(tmax-tmin,2)) s
+          """))
+    println(io,
+    )
     counters = [a.loop_counters for a in expt.data]
     sep = ""
     for (i,label) in enumerate(counter_labels(expt))
         cntmin,cntmax = extrema(c[i] for c in counters)
         if cntmin != 0 || cntmax != 0
-            print(io, sep, "  index $i in [$cntmin,$cntmax]   ($label)")
+            print(io, sep, "  Loop index $i in [$cntmin,$cntmax]   ($label)")
             sep = "\n"
         end
     end

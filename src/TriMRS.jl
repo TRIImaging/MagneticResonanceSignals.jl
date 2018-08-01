@@ -5,6 +5,7 @@ module TriMRS
 using MicroLogging
 using StaticArrays
 using DataStructures
+using Compat
 
 include("io_twix.jl")
 include("io_felix.jl")
@@ -23,7 +24,8 @@ end
 export
     MRExperiment,
     meta_search,
-    timestamp
+    standard_metadata,
+    scanner_time
 
 export SpectroData,
     get_fid,
