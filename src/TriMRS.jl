@@ -14,6 +14,7 @@ include("MRAxis.jl")
 
 include("FIDData.jl")
 
+include("coil_combination.jl")
 include("processing.jl")
 
 if isdir(Pkg.dir("PyPlot"))
