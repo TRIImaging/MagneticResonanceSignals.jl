@@ -16,6 +16,7 @@ include("FIDData.jl")
 
 include("coil_combination.jl")
 include("processing.jl")
+include("windows.jl")
 
 if isdir(Pkg.dir("PyPlot"))
     using PyPlot
@@ -45,6 +46,7 @@ export load_rda,
     load_twix
 
 export
+    MRWindows,
     zero_pad,
     pca_channel_combiner,
     combine_channels
