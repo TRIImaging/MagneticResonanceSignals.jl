@@ -5,6 +5,7 @@
 Data from a single acquisition by a Siemens MR scanner (software version VD?)
 """
 struct Acquisition
+    # Measurement Data Header (MDH) section.
     meas_uid                    ::UInt32
     scan_counter                ::UInt32
     time_stamp                  ::UInt32
@@ -15,11 +16,11 @@ struct Acquisition
     ptab_pos_x                  ::UInt32
     ptab_pos_y                  ::UInt32
     ptab_pos_z                  ::UInt32
-    # Flags
-    acq_end                     ::Bool
-    rt_feedback                 ::Bool
-    hp_feedback                 ::Bool
-    sync_data                   ::Bool
+    # flags (bitpacked in raw MDH data)
+    acq_end                     ::Bool    # Set on placeholder packet after sequence end.
+    rt_feedback                 ::Bool    # Real time feedback (ICE will process acquisition ASAP)
+    hp_feedback                 ::Bool    # High priority feedback (?)
+    sync_data                   ::Bool    # Data following will be seq->ICE raw data transfer (not an acquisition)
     raw_data_correction         ::Bool
     ref_phase_stab_scan         ::Bool
     phase_stab_scan             ::Bool
@@ -29,11 +30,10 @@ struct Acquisition
     pat_ref_ima_scan            ::Bool
     reflect                     ::Bool
     noise_adj_scan              ::Bool
-    # Raw data size
+    # raw data size from ADC
     num_samples                 ::UInt16
     num_channels                ::UInt16
     loop_counters               ::SVector{14,UInt16}
-    # 
     cut_off_data                ::UInt32
     kspace_centre_column        ::UInt16
     coil_select                 ::UInt16
@@ -42,11 +42,12 @@ struct Acquisition
     kspace_centre_line_num      ::UInt16
     kspace_centre_partition_num ::UInt16
     slice_position              ::SVector{7,Float32}
+    # per-acquisition sequence-dependent parameters as passed to ICE program.
     ice_program_params          ::SVector{24,UInt16}
     reserved_params             ::SVector{4,UInt16}
     application_counter         ::UInt16
     application_mask            ::UInt16
-    # Measurement data nchans × npoints
+    # Measurement data matrix of size num_samples × num_channels
     data::Matrix{Complex64}
 end
 
@@ -268,6 +269,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         #@show DMA_length pack_flag PCI_rx
 
         iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
+
         meas_uid, scan_counter, time_stamp, pmu_time_stamp = read(iob, UInt32, 4)
         system_type, ptab_pos_delay = read(iob, UInt16, 2)
         ptab_pos_x, ptab_pos_y, ptab_pos_z, reserved = read(iob, UInt32, 4)
@@ -292,7 +294,16 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             break
         end
 
-        # there are some data frames that contain auxilliary data, we ignore those for now
+        # Real time data comes in several flavours:
+        #   * MR data (coil potentials) as recorded by the ADC
+        #   * Physiological data as recorded by the PMU (physiological measurement unit)
+        #   * Real time sync data from sequence program to ICE
+        #
+        # For now, we ignore non-MR data which has a different binary layout.
+        if sync_data || hp_feedback
+            @info "Ignoring unknown data packet" sync_data hp_feedback
+            continue
+        end
         #=
         if rt_feedback || hp_feedback || phase_correction || noise_adj_scan || sync_data
             continue
