@@ -14,24 +14,40 @@ These factors depend on the relative geometry of the sample vs coil for each
 channel, and may be inferred from one or more acquisitions, depending on the
 experiment.
 """
-struct ChannelCombiner
+struct ChannelCombiner{R}
     weights::Vector{Complex128}
+    channels::R
 end
+
+ChannelCombiner(w, c) = ChannelCombiner(Complex128.(w), c)
 
 (combiner::ChannelCombiner)(data) = combine_channels(combiner, data)
 
-# Combine channels data residing in a `NxC` matrix `data`, where `N` is number
-# of temporal samples and `C` the number of channels.
-combine_channels(combiner::ChannelCombiner, data::Matrix) = data * combiner.weights
-combine_channels(combiner::ChannelCombiner, acq::Acquisition) = acq.data * combiner.weights
+"""
+    combine_channels(combiner::ChannelCombiner, data)
+
+Combine channels data residing in a `NxC` matrix `data`, where `N` is number of
+temporal samples and `C` the number of channels.  Alternatively, `data` can be
+an acquisition.
+
+See `pca_channel_combiner()` to create a ChannelCombiner functor.
+"""
+combine_channels(combiner::ChannelCombiner, data::Matrix) =
+    data[:,combiner.channels] * combiner.weights
+combine_channels(combiner::ChannelCombiner, acq::Acquisition) =
+    acq.data[:,combiner.channels] * combiner.weights
 
 
-# Deduce channel weights from the data itself
+"""
+    combine_channels(acq::Acquisition)
+
+Combine channels, deducing channel weights from the data itself
+"""
 combine_channels(acq::Acquisition) = pca_channel_combiner([acq])(acq)
 
 
 """
-    pca_channel_combiner(acquisitions::Vector{Acquisition}; signal_range=nothing)
+    pca_channel_combiner(acquisitions::Vector{Acquisition}; signal_range=nothing, channels=:)
 
 Compute channel combination object using PCA, assuming that each acquisition in
 `acquisitions` has the same relative geometry of sample and coils.  We use the
@@ -42,8 +58,12 @@ These assumptions should be valid to assess the relative coil SNR for
 spectroscopy of a single voxel; for other experiments you may want to use a
 different method, or restrict calculation of weights to a different
 `signal_range`.
+
+`channels` can be set to a index-like object in order to combine only a subset
+of channels.
 """
-function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing)
+function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing,
+                              channels=:)
     # Select set of time series data from multiple acquisitions, containing
     # mostly signal rather than noise.
     if signal_range == nothing
@@ -54,7 +74,7 @@ function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing)
         # we could do something better here...
         signal_range = 1:min(100, size(acqs[1].data,1))
     end
-    signal = vcat([a.data[signal_range,:] for a in acqs]...)
+    signal = vcat([a.data[signal_range,channels] for a in acqs]...)
 
     # Compute PCA via the correlation matrix
     evals,evecs = eig(signal'*signal)
@@ -65,7 +85,7 @@ function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing)
     # TODO:
     # * What's the most appropriate normalization for the weights?
     # * Is there any sensible phase factor we should add here?
-    ChannelCombiner((1./sum(abs.(weights))) .* weights)
+    ChannelCombiner((1./sum(abs.(weights))) .* weights, channels)
 end
 
 
