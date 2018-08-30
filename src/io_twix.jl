@@ -1,5 +1,15 @@
 #-------------------------------------------------------------------------------
-# Representation of raw acquisition
+# Representation of raw acquisition data
+
+"""
+Data stored in the header preceding each channel of a raw acquisition
+"""
+struct ChannelHeader
+    meas_uid      ::UInt32
+    scan_counter  ::UInt32
+    sequence_time ::UInt32
+    channel_id    ::UInt16
+end
 
 """
 Data from a single acquisition by a Siemens MR scanner (software version VD?)
@@ -17,6 +27,7 @@ struct Acquisition
     ptab_pos_y                  ::UInt32
     ptab_pos_z                  ::UInt32
     # flags (bitpacked in raw MDH data)
+    # TODO: Consider leaving these packed & using `getproperty()`?
     acq_end                     ::Bool    # Set on placeholder packet after sequence end.
     rt_feedback                 ::Bool    # Real time feedback (ICE will process acquisition ASAP)
     hp_feedback                 ::Bool    # High priority feedback (?)
@@ -47,8 +58,10 @@ struct Acquisition
     reserved_params             ::SVector{4,UInt16}
     application_counter         ::UInt16
     application_mask            ::UInt16
-    # Measurement data matrix of size num_samples × num_channels
-    data::Matrix{Complex64}
+    # Measured magnetization
+    channel_info::Vector{ChannelHeader} # num_channels
+    data::Matrix{Complex64}           # num_samples × num_channels
+end
 end
 
 """
@@ -345,19 +358,19 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         #np = 2^floor(Int, log2(num_samples - fid_start))
 
         # read the data for each channel in turn
+        channel_info = ChannelHeader[]
         data = zeros(Complex64, (num_samples, num_channels))
         for channel_index = 1:num_channels
-            # start with the header
             dma_length    = read(iob, UInt32)
             meas_uid      = read(iob, UInt32)
             scan_counter  = read(iob, UInt32)
-                            read(iob, UInt32) # skip
+                            read(iob, UInt32) # skip (padding? observed to be zeroed)
             sequence_time = read(iob, UInt32)
                             read(iob, UInt32) # skip
             channel_id    = read(iob, UInt16)
                             read(iob, UInt16) # skip
                             read(iob, UInt32) # skip
-            # Now the data itself
+            push!(channel_info, ChannelHeader(meas_uid, scan_counter, sequence_time, channel_id))
             raw_data = read(iob, Complex64, num_samples)
             # NB: The quadrature convetion used in twix is the opposite of what
             # we'd like for spectro: We want the positive frequencies after a
@@ -365,9 +378,12 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             # spectrometer reference frequency. But in twix they are negative
             # so directly doing an fft of the raw data would flip the frequency
             # axis.  We add a conj to standardize the convention.
+            #
+            # TODO: Perhaps should reconsider this, to preserve the original
+            # data as much as possible? Consider starting to version TriMRS if
+            # this is to be changed. Need a better interface to the raw data so
+            # we have flexibility in storing the underlying data.
             data[:,channel_index] .= conj.(raw_data)
-            # NB: Suspect takes the following:
-            #data[channel_index,:] .= conj.(raw_data[fid_start+1:fid_start+np])
         end
         acq = Acquisition(
             meas_uid, scan_counter, time_stamp, pmu_time_stamp,
@@ -379,7 +395,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             cut_off_data, kspace_centre_column, coil_select, readout_offcentre,
             time_since_rf, kspace_centre_line_num, kspace_centre_partition_num, slice_position,
             ice_program_params, reserved_params, application_counter, application_mask,
-            data)
+            channel_info, data)
         if acquisition_filter(acq)
             push!(acquisitions, acq)
         end
