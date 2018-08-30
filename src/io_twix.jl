@@ -62,16 +62,61 @@ struct Acquisition
     channel_info::Vector{ChannelHeader} # num_channels
     data::Matrix{Complex64}           # num_samples × num_channels
 end
+
+
+#-------------------------------------------------------------------------------
+# Metadata
+
+"""
+    RxCoilElementData(
+        element, coil_id, unique_key, coil_copy, coil_type,
+        rx_channel_connected, adc_channel_connected, mux_channel_connected,
+        insertion_time, element_selected
+    )
+
+Siemens MR receiver coil element data.
+
+## Logical connectivity
+adc_channel_connected corresponds to the `channel_id` in the channel
+acquisition header, though off by 1 (?!)
+
+## Physical connectivity:
+`rx_channel_connected` is duplicated in Siemens "dual-density" systems - two
+coils are transmitted on a single wire with different carrier frequencies.
+These are (presumably) split before ADC, and ADC channels come in pairs.
+"""
+struct RxCoilElementData
+    # CoilElementID
+    element::String
+    coil_id::String
+    unique_key::UInt32
+    coil_copy::Int
+    # CoilProperties
+    coil_type::Int
+    # Physical / logical connectivity
+    rx_channel_connected::Int
+    adc_channel_connected::Int
+    mux_channel_connected::Int
+    insertion_time::Int
+    element_selected::Int
 end
 
+
+#-------------------------------------------------------------------------------
 """
     MRExperiment(metadata, acq_data)
 
-Container for data from a magnetic resonance experiment: a series of
-excitations and acquired free induction decays.
+Container for data from a generic magnetic resonance experiment: a series of
+`Acquisition`s, each of which records the coil response due to induced nuclear
+magnetization.
+
+Note that the input pulse sequence is not recorded in Siemens raw format, so
+it's not available here. The only way to know this in full detail is to
+simulate the sequence with the same input parameters using the Siemens `poet`
+tool from the Siemens proprietary IDEA development environment.
 """
 struct MRExperiment
-    metadata
+    metadata # TODO: rename to yaps, as we're only parsing yaps data.
     data::Vector{Acquisition}
 end
 
@@ -439,6 +484,36 @@ function parse_header_yaps(yaps)
         end
     end
     metadata
+end
+
+function parse_yaps_rx_coil_selection(yaps)
+    nucleus_index = 0
+    prefix = "sCoilSelectMeas.aRxCoilSelectData[$nucleus_index]"
+    nuc_name = yaps[prefix*".tNucleus"]
+    if nuc_name != "1H"
+        @warn "Expected nucleus 0 to be 1H - you will get coil data for $nuc_name instead"
+    end
+    ncoil = get(yaps, prefix*".asList.__attribute__.size", 0)
+    if ncoil == 0
+        @warn "No receive coils found in yaps data" yaps
+        return
+    end
+    coils = RxCoilElementData[]
+    for i = 0:ncoil-1
+        push!(coils, RxCoilElementData(
+            yaps[prefix*".asList[$i].sCoilElementID.tElement"],
+            yaps[prefix*".asList[$i].sCoilElementID.tCoilID"],
+            reinterpret(UInt32, Int32(yaps[prefix*".asList[$i].sCoilElementID.ulUniqueKey"])),
+            yaps[prefix*".asList[$i].sCoilElementID.lCoilCopy"],
+            yaps[prefix*".asList[$i].sCoilProperties.eCoilType"],
+            yaps[prefix*".asList[$i].lRxChannelConnected"],
+            yaps[prefix*".asList[$i].lADCChannelConnected"],
+            yaps[prefix*".asList[$i].lMuxChannelConnected"],
+            yaps[prefix*".asList[$i].uiInsertionTime"],
+            yaps[prefix*".asList[$i].lElementSelected"],
+       ))
+    end
+    coils
 end
 
 """
