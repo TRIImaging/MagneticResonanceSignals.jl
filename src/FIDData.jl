@@ -26,15 +26,18 @@ function SpectroData(expt::MRExperiment)
         throw(ArgumentError("Cannot harvest spectro from unrecognized sequence: $seqfile"))
     end
     # FID sampling period in ns
+    # The name "DwellTime" is probably a stretched analogy with radar signal
+    # processing terminology.
     dt2 = 1e-9 * expt.metadata["sRXSPEC.alDwellTime[0]"]
-    # TODO: Is this is stored in μHz?
+    # This is stored in Hz, but we convert to MHz for convenience in the PPM conversion.
+    # TODO: Probably better if we didn't!
     f0  = 1e-6 * expt.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"]
     # Ugh. srcosy stashes the t1 increment in the special card WIP block
     # params (in ms). This appears to be the only place it occurs in the
     # metadata.
     dt1 = 1e-3 * expt.metadata["sWipMemBlock.adFree[1]"]
-    # TODO: Unsure whether the echo time te is meaningful for srcosy...
-    # suspect.py thinks it's in μs
+    # Echo time - will set relative content of different metabolites in the
+    # signal, depending on decay rates.
     te  = 1e-6 * expt.metadata["alTE[0]"]
     protocol_name = expt.metadata["tProtocolName"]
 
@@ -65,7 +68,7 @@ function Base.show(io::IO, fids::SpectroData)
               fid acquisition:
                  fid length   = $(size(data,4))
                  dt           = $(fids.dt) s
-                 f0           = $(fids.f0) Hz
+                 f0           = $(fids.f0) MHz
                  n_t2         = $(size(data,1))
                  num_channels = $(size(data,2))
                  num_average  = $(size(data,3))

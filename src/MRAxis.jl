@@ -4,27 +4,37 @@
 
 A combined time and frequency axis object for an MR experiment.
 
+`f0` is the spectrometer frequency in MHz.  `dt` is the time between ADC
+samples in seconds (somewhat bizarrely called "dwell time" in Siemens
+terminology).
+
 The number of points in FID acquisition is given by `numpoints` - for now we
-resist trying to guess this from `expt` until more is known about the potential
-structure.
+resist trying to guess this from `expt` until more is known about the
+structure there.
 
 `ppm0` is the nominal PPM of the spectrometer reference frequency which is set
 to 4.7 by default.  That is, we assume the spectrometer is tuned to the water
-peak, 4.7 being our chosen nominal chemical shift of water relative to TMS.
-(The true shift can vary based on pH, temperature, etc.)
+resonance, and 4.7 is a chosen nominal chemical shift of water relative to TMS.
+Note that this is only approximate because the true shift can vary based on pH,
+temperature, etc and you should calibrate your spectral axes against known
+metabolites.
 """
 struct MRAxis
-    f0::Float64
-    dt::Float64
-    n::Int
-    ppm0::Float64
+    f0::Float64    # MHz
+    dt::Float64    # s
+    n::Int         # 
+    ppm0::Float64  # ppm
 end
 
 MRAxis(f0, dt, numpoints; ppm0=4.7) = MRAxis(f0, dt, numpoints, ppm0)
 
 function MRAxis(expt::MRExperiment, numpoints; ppm0=4.7)
-    # TODO: Is this is stored in μHz?
+    # The 1e-6 conversion here is so that we have f0 in MHz. (As a consequence,
+    # the factor of 1e6 in unit conversion to ppm happens automatically.)
+    # TODO: Argubly ugly, and perhaps should just be in Hz.
     f0 = 1e-6 * expt.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"]
+    # The Siemens name "DwellTime" is probably a stretched analogy with radar
+    # signal processing terminology.
     dt = 1e-9 * expt.metadata["sRXSPEC.alDwellTime[0]"]
     MRAxis(f0, dt, numpoints, ppm0)
 end
