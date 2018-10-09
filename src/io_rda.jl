@@ -35,7 +35,7 @@ function load_rda(io::IO)
     csi_length == 1 || error("CSI data shape not implemented")
     # RDA should always be channel combined (& averaged?)
     raw_data = read(io)
-    data = reinterpret(Complex128, raw_data)
+    data = reinterpret(ComplexF64, raw_data)
     if length(data) != parse(Int,header["VectorSize"])
         error("Unexpected .rda data length $(length(data))")
     end
@@ -51,7 +51,7 @@ load_rda(fname::AbstractString) = open(load_rda, fname)
 Save a single FID as Siemens format .rda.  `header` should be a dictionary of
 key values for the rda ASCII header.
 """
-function save_rda(io::IO, header::Associative, data)
+function save_rda(io::IO, header::AbstractDict, data)
     if parse(Int, header["VectorSize"]) != length(data)
         error("rda header VectorSize mismatches with length(data)")
     end
@@ -60,7 +60,7 @@ function save_rda(io::IO, header::Associative, data)
         write(io, "$key: $val\r\n")
     end
     write(io, ">>> End of header <<<\r\n")
-    write(io, Complex128.(data))
+    write(io, ComplexF64.(data))
     nothing
 end
 

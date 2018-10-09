@@ -15,11 +15,11 @@ channel, and may be inferred from one or more acquisitions, depending on the
 experiment.
 """
 struct ChannelCombiner{R}
-    weights::Vector{Complex128}
+    weights::Vector{ComplexF64}
     channels::R
 end
 
-ChannelCombiner(w, c) = ChannelCombiner(Complex128.(w), c)
+ChannelCombiner(w, c) = ChannelCombiner(ComplexF64.(w), c)
 
 (combiner::ChannelCombiner)(data) = combine_channels(combiner, data)
 
@@ -77,15 +77,20 @@ function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing,
     signal = vcat([a.data[signal_range,channels] for a in acqs]...)
 
     # Compute PCA via the correlation matrix
-    evals,evecs = eig(signal'*signal)
+    evals,evecs = if VERSION < v"0.7"
+        eig(signal'*signal)
+    else
+        es = eigen(signal'*signal)
+        es.values,es.vectors
+    end
     # Weights arise from the first principle component
-    pc1_index = indmax(evals)
+    pc1_index = argmax(evals)
     weights = evecs[:,pc1_index]
 
     # TODO:
     # * What's the most appropriate normalization for the weights?
     # * Is there any sensible phase factor we should add here?
-    ChannelCombiner((1./sum(abs.(weights))) .* weights, channels)
+    ChannelCombiner((1 ./ sum(abs.(weights))) .* weights, channels)
 end
 
 

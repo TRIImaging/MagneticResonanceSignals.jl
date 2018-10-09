@@ -6,6 +6,8 @@ using MicroLogging
 using StaticArrays
 using DataStructures
 using Compat
+using Compat.LinearAlgebra
+using RecipesBase
 
 include("io_twix.jl")
 include("io_felix.jl")
@@ -17,11 +19,7 @@ include("FIDData.jl")
 include("coil_combination.jl")
 include("processing.jl")
 include("windows.jl")
-
-if isdir(Pkg.dir("PyPlot"))
-    using PyPlot
-    include("plotting.jl")
-end
+include("plotting.jl")
 
 export
     MRExperiment,

@@ -1,6 +1,8 @@
 #-------------------------------------------------------------------------------
 # Representation of raw acquisition data
 
+using Compat.Dates
+
 """
 Data stored in the header preceding each channel of a raw acquisition
 """
@@ -60,7 +62,7 @@ struct Acquisition
     application_mask            ::UInt16
     # Measured magnetization
     channel_info::Vector{ChannelHeader} # num_channels
-    data::Matrix{Complex64}           # num_samples × num_channels
+    data::Matrix{ComplexF32}           # num_samples × num_channels
 end
 
 
@@ -203,7 +205,7 @@ function Base.show(io::IO, expt::MRExperiment)
     print(io, rstrip("""
           Acquisition summary:
             Number   = $(length(expt.data))
-            Duration = $(round(tmax-tmin,2)) s
+            Duration = $(Compat.round(tmax-tmin,digits=2)) s
           """))
     println(io,
     )
@@ -224,7 +226,7 @@ end
 function check_twix_type(io)
     # Detect whether this is a twix file from VB or VD software version,
     # using a magic number heuristic from suspect.py
-    m1,m2 = read(io, UInt32, 2)
+    m1,m2 = read(io, SVector{2,UInt32})
     seek(io, 0)
     if m1 == 0 && m2 < 64
         return :vd
@@ -255,6 +257,7 @@ function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
         # For now parse the MeasYaps section as it's is the easiest to parse and
         # contains parameters relevant to downstream interpretation by the ICE
         # program (...I think?)
+        @debug "Header section names" keys(header_sections)
         metadata = parse_header_yaps(header_sections["MeasYaps"])
         MRExperiment(metadata, acquisitions)
     end
@@ -282,25 +285,25 @@ function dump_twix_headers(filename, dump_dir)
     end
 end
 
-function read_zero_packed_string(io, length)
-    data = read(io, length)
-    firstnull = findfirst(data, 0)
-    strend = firstnull > 0 ? firstnull-1 : firstnull = length(data)
+function read_zero_packed_string(io, N)
+    data = read(io, N)
+    firstnull = Compat.findfirst(data .== 0)
+    strend = firstnull==nothing ? length(data) : firstnull-1
     String(data[1:strend])
 end
 
 
 # The following is inspired by the twix reader in suspect.py.
 function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
-    twix_id, num_measurements = read(io, Int32, 2)
+    twix_id, num_measurements = read(io, SVector{2,Int32})
     # vd file can contain multiple measurements, but we only want the MRS.
     # Assume that the MRS is the last measurement.
     measurement_index = meas_selector(1:num_measurements)
 
     # measurement headers are each 152 bytes at start of segment
     seek(io, 8 + 152 * (measurement_index-1))
-    meas_uid, file_id = read(io, Int32, 2)
-    meas_offset, meas_length = read(io, Int64, 2)
+    meas_uid, file_id = read(io, SVector{2,Int32})
+    meas_offset, meas_length = read(io, SVector{2,Int64})
     patient_name = read_zero_packed_string(io, 64)
     protocol_name = read_zero_packed_string(io, 64)
     @debug "Reading TWIX VD Header" meas_uid file_id patient_name protocol_name
@@ -328,9 +331,9 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
 
         iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
 
-        meas_uid, scan_counter, time_stamp, pmu_time_stamp = read(iob, UInt32, 4)
-        system_type, ptab_pos_delay = read(iob, UInt16, 2)
-        ptab_pos_x, ptab_pos_y, ptab_pos_z, reserved = read(iob, UInt32, 4)
+        meas_uid, scan_counter, time_stamp, pmu_time_stamp = read(iob, SVector{4,UInt32})
+        system_type, ptab_pos_delay = read(iob, SVector{2,UInt16})
+        ptab_pos_x, ptab_pos_y, ptab_pos_z, reserved = read(iob, SVector{4,UInt32})
 
         # more composite information
         eval_info_mask      = read(iob, UInt64)
@@ -404,7 +407,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
 
         # read the data for each channel in turn
         channel_info = ChannelHeader[]
-        data = zeros(Complex64, (num_samples, num_channels))
+        data = zeros(ComplexF32, (num_samples, num_channels))
         for channel_index = 1:num_channels
             dma_length    = read(iob, UInt32)
             meas_uid      = read(iob, UInt32)
@@ -416,7 +419,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
                             read(iob, UInt16) # skip
                             read(iob, UInt32) # skip
             push!(channel_info, ChannelHeader(meas_uid, scan_counter, sequence_time, channel_id))
-            raw_data = read(iob, Complex64, num_samples)
+            raw_data = read!(iob, Vector{ComplexF32}(undef,num_samples))
             # NB: The quadrature convetion used in twix is the opposite of what
             # we'd like for spectro: We want the positive frequencies after a
             # simple fft to correspond to a positive offset from the
@@ -458,7 +461,7 @@ function parse_twix_header_sections(io)
     num_sec = read(io, UInt32)
     sections = Dict{String,String}()
     for sec_index = 1:num_sec
-        sec_name    = String(readuntil(io, '\0')[1:end-1])
+        sec_name    = String(Compat.readuntil(io, '\0', keep=false))
         sec_size    = read(io, UInt32)
         sec_content = read(io, sec_size)
         if sec_content[end] == 0
@@ -477,8 +480,13 @@ function parse_header_yaps(yaps)
         end
         m = match(r"^([^#\s]+)\s*=\s*(.*?)\s*$", line)
         if m != nothing
-            # Cheat a bit by using the julia parser for the RHS
-            metadata[m[1]] = parse(m[2])
+            if occursin(r"^\".*\"$", m[2])
+                metadata[m[1]] = m[2][2:end-1]
+            elseif occursin(r"^[+-]?\d+\.\d*$", m[2])
+                metadata[m[1]] = parse(Float64, m[2])
+            else # assume integer (though may be a float)
+                metadata[m[1]] = parse(Int, m[2])
+            end
         else
             @warn "could not match YAPS header line \"$(Vector{UInt8}(line))\""
         end
@@ -523,8 +531,8 @@ Search through MR experiment `metadata` for a given regular expression,
 `pattern` or for a case insensitive string `pattern`.
 """
 function meta_search(expt::MRExperiment, pattern)
-    Dict(k=>v for (k,v) in expt.metadata if ismatch(pattern, k))
+    Dict(k=>v for (k,v) in expt.metadata if occursin(pattern, k))
 end
 function meta_search(expt::MRExperiment, pattern::String)
-    Dict(k=>v for (k,v) in expt.metadata if ismatch(Regex(pattern,"i"), k))
+    Dict(k=>v for (k,v) in expt.metadata if occursin(Regex(pattern,"i"), k))
 end

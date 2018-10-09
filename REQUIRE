@@ -1,5 +1,6 @@
-julia 0.6
-MicroLogging
-StaticArrays
+julia 0.6 2.0
+MicroLogging 0.3.0
+StaticArrays # fixme need > 0.8.3
 DataStructures
-Compat
+Compat 1.2.0
+RecipesBase

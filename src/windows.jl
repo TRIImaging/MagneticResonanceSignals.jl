@@ -33,7 +33,7 @@ which allows for interactive editing of the window.
 """
 function sinebell(t, skew, n)
     # Educated guess at the Felix parameterization.
-    sin(pi*t.^skew)^n
+    sin(pi*t^skew)^n
 end
 
 end
