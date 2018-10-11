@@ -482,7 +482,7 @@ function parse_header_yaps(yaps)
         if m != nothing
             if occursin(r"^\".*\"$", m[2])
                 metadata[m[1]] = m[2][2:end-1]
-            elseif occursin(r"^[+-]?\d+\.\d*$", m[2])
+            elseif occursin(r"^[+-]?\d+\.\d*([eE][-+]?\d+)?$", m[2])
                 metadata[m[1]] = parse(Float64, m[2])
             else # assume integer (though may be a float)
                 metadata[m[1]] = parse(Int, m[2])
