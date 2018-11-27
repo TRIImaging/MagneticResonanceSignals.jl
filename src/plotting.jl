@@ -12,6 +12,7 @@
             @series begin
                 label --> "$(all_labels[i]) (index $i)"
                 markershape --> :circle
+                markersize --> 1
                 t, c
             end
         end

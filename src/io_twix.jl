@@ -321,13 +321,17 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     end
 
     # read each scan until we hit the acq_end flag
-    while true
+    while !eof(io)
         # the first four bytes contain some composite information
         temp = read(io, UInt32)
         DMA_length = temp & (2^26 - 1)
         pack_flag = Bool((temp >> 25) & 1)
         PCI_rx = temp >> 26
         #@show DMA_length pack_flag PCI_rx
+        if DMA_length < sizeof(UInt32)
+            @warn "Unexpected empty meas packet before acq_end flag" DMA_length
+            break
+        end
 
         iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
 
