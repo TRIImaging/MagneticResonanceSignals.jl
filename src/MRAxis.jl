@@ -54,4 +54,4 @@ function frequency_axis(a::MRAxis)
     (-zero_offset:a.n-1-zero_offset) / (a.n*a.dt)
 end
 
-frequency_axis_ppm(a::MRAxis) = hertz_to_ppm.(a, frequency_axis(a))
+frequency_axis_ppm(a::MRAxis) = hertz_to_ppm.(Ref(a), frequency_axis(a))
