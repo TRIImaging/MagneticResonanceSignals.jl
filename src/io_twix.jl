@@ -47,7 +47,8 @@ struct Acquisition
     num_samples                 ::UInt16
     num_channels                ::UInt16
     loop_counters               ::SVector{14,UInt16}
-    cut_off_data                ::UInt32
+    cutoff_pre                  ::UInt16
+    cutoff_post                 ::UInt16
     kspace_centre_column        ::UInt16
     coil_select                 ::UInt16
     readout_offcentre           ::UInt32
@@ -123,9 +124,7 @@ struct MRExperiment
 end
 
 """
-Get labels for loop counters.
-
-TODO: Need to verify how this depends on software version number
+Get labels for loop counters (valid for VE11C)
 """
 counter_labels(::MRExperiment) =
     ["line", "acquisition", "slice", "partition", "echo",
@@ -388,7 +387,8 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         #@show Int(num_samples) Int(num_channels)
         #@show Int.(loop_counters)
 
-        cut_off_data                = read(iob, UInt32)
+        cutoff_pre                  = read(iob, UInt16)
+        cutoff_post                 = read(iob, UInt16)
         kspace_centre_column        = read(iob, UInt16)
         coil_select                 = read(iob, UInt16)
         readout_offcentre           = read(iob, UInt32)
@@ -444,7 +444,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             ref_phase_stab_scan, phase_stab_scan, sign_rev, phase_correction,
             pat_ref_scan, pat_ref_ima_scan, reflect, noise_adj_scan,
             num_samples, num_channels, loop_counters,
-            cut_off_data, kspace_centre_column, coil_select, readout_offcentre,
+            cutoff_pre, cutoff_post, kspace_centre_column, coil_select, readout_offcentre,
             time_since_rf, kspace_centre_line_num, kspace_centre_partition_num, slice_position,
             ice_program_params, reserved_params, application_counter, application_mask,
             channel_info, data)
