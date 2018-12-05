@@ -54,4 +54,13 @@ function frequency_axis(a::MRAxis)
     (-zero_offset:a.n-1-zero_offset) / (a.n*a.dt)
 end
 
-frequency_axis_ppm(a::MRAxis) = hertz_to_ppm.(Ref(a), frequency_axis(a))
+function frequency_axis_ppm(a::MRAxis)
+    @warn "Is it right that this flips the axis direction?"
+    hertz_to_ppm.(Ref(a), frequency_axis(a))
+end
+
+function frequency_axis(a::AxisArray)
+    n = length(a.time)
+    zero_offset = floor(Int, n/2)
+    (-zero_offset:n-1-zero_offset) * uconvert.(u"Hz", one(eltype(a.time))/(n*step(a.time)))
+end

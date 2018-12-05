@@ -5,8 +5,15 @@ module TriMRS
 using MicroLogging
 using StaticArrays
 using DataStructures
+using AxisArrays
+
+using Statistics
+using Unitful
+using FFTW
+
 using Compat
 using Compat.LinearAlgebra
+
 using RecipesBase
 
 include("io_twix.jl")
@@ -45,9 +52,12 @@ export load_rda,
 
 export
     MRWindows,
-    zero_pad,
+    zeropad,
     pca_channel_combiner,
-    combine_channels
+    combine_channels,
+    combine_avg
+
+using .MRWindows
 
 @deprecate load_twix_raw load_twix
 
