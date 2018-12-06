@@ -20,19 +20,37 @@ to - the generic signal processing reasons for time domain windowing.
 """
 module MRWindows
 
+using AxisArrays
+
 export sinebell
 
 """
-    sinebell(t, skew, n)
-
-Skewed sine bell window, as in Felix NMR (zero phase shift).
-
-In the Felix UI, the window function can be seen via
-"Open and Process"->"Window"->"Real time"
-which allows for interactive editing of the window.
+Apply `windowfunc` over the dimensionless time range `(0:tlen-1)/tlen)` of
+`fid`.
 """
-function sinebell(t, skew, n)
-    # Educated guess at the Felix parameterization.
+function apply_window!(fid::AxisArray, windowfunc)
+    dim = axisdim(fid, Axis{:time})
+    t = fid.time
+    w = windowfunc.((0:length(t)-1)/length(t))
+    # Reshape to broadcast `w` only along time dimension
+    windowshape = ntuple(i->i==dim ? length(t) : 1, ndims(fid))
+    w = reshape(w, windowshape...)
+    fid .*= w
+    fid
+end
+
+"""
+    sinebell(fid; skew, n)
+
+Apply a skewed sine bell window, as in Felix NMR (zero phase shift).
+"""
+function sinebell(fid; skew, n)
+    apply_window!(copy(fid), (t)->_sinebell(t, skew, n))
+end
+
+function _sinebell(t, skew, n)
+    # Guess at the Felix parameterization via inspection of the window in the
+    # UI; seen via "Open and Process"->"Window"->"Real time"
     sin(pi*t^skew)^n
 end
 

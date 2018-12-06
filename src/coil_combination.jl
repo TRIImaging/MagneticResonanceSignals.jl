@@ -32,7 +32,7 @@ an acquisition.
 
 See `pca_channel_combiner()` to create a ChannelCombiner functor.
 """
-combine_channels(combiner::ChannelCombiner, data::Matrix) =
+combine_channels(combiner::ChannelCombiner, data::AbstractMatrix) =
     data[:,combiner.channels] * combiner.weights
 combine_channels(combiner::ChannelCombiner, acq::Acquisition) =
     acq.data[:,combiner.channels] * combiner.weights

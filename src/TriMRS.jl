@@ -52,10 +52,11 @@ export load_rda,
 
 export
     MRWindows,
+    sampledata,
     zeropad,
     pca_channel_combiner,
     combine_channels,
-    combine_avg
+    spectrum
 
 using .MRWindows
 
