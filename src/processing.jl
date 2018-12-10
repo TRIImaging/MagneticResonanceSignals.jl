@@ -43,29 +43,33 @@ removing noise by filtering away irrelevant high and low frequency components.
 """
 function sampledata(expt, index; downsamp=2)
     acq = expt.data[index]
-    dt = Int(expt.metadata["sRXSPEC.alDwellTime[0]"] / 1000) * u"μs"
     # The siemens sequence SVS_SE provides a few additional samples before and
     # after the desired ones. They comment that this is mainly to allow some
     # samples to be cut off after downsampling, (presumably to remove some of
     # the ringing artifacts of doing this with a simple FFT).
     cutpre  = acq.cutoff_pre
     cutpost = acq.cutoff_post
-    _downsample_and_truncate(acq.data, dt, cutpre, cutpost, downsamp)
+    downsample_and_truncate(acq.data, dwell_time(expt), cutpre, cutpost, downsamp)
 end
 
-# Internal function for downsampling and truncating an acqusition.
-function _downsample_and_truncate(z, dt, cutpre, cutpost, downsamp)
+# Internal function for downsampling, truncating, and wrapping an acqusition in
+# an AxisArray
+function downsample_and_truncate(z, dt, cutpre, cutpost, downsamp)
     # Adjust time so that the t=0 occurs in the first retained sample
-    t = ((0:size(z,1)-1) .- (cutpre+1))*dt
+    t = ((0:size(z,1)-1) .- cutpre)*dt
     if downsamp > 1
-        # Do downsampling if requested, via naive FFT with square window.
+        # Do downsampling if requested, via naive Fourier filtering with square
+        # window.  This appears to be the way Siemens implement this as well.
+        # It's a very spectrum-focussed way to do things and is a bit of an
+        # abuse in the time domain.
+        #
         # TODO: Do something useful if it's not a whole number of samples,
         # instead of an error?
         s1 = fft(z, 1)
         N = size(s1,1)
         n = Int(N/downsamp/2)
-        s2 = [s1[1:n,:]; s1[end-n+1:end,:]]
-        z = fft(s2, 1)
+        s2 = [s1[1:n,:]; s1[end-n+1:end,:]] ./ downsamp
+        z = ifft(s2, 1)
         t = t[1:downsamp:end]
         cutpre  = Int(cutpre/downsamp)
         cutpost = Int(cutpost/downsamp)

@@ -186,7 +186,9 @@ from an experiment.
 """
 scanner_time(expt::MRExperiment) = scanner_time.(expt.data)
 # 2.5 ms per count... is this reliable?
-scanner_time(acq::Acquisition) = 0.0025 * acq.time_stamp
+scanner_time(acq::Acquisition) = 2500u"μs" * acq.time_stamp
+
+dwell_time(expt::MRExperiment) = expt.metadata["sRXSPEC.alDwellTime[0]"]*u"ns"
 
 function Base.show(io::IO, expt::MRExperiment)
     println(io, "MRExperiment metadata:")
@@ -204,7 +206,7 @@ function Base.show(io::IO, expt::MRExperiment)
     print(io, rstrip("""
           Acquisition summary:
             Number   = $(length(expt.data))
-            Duration = $(Compat.round(tmax-tmin,digits=2)) s
+            Duration = $(uconvert(u"s", 1.0*(tmax-tmin)))
           """))
     println(io,
     )
