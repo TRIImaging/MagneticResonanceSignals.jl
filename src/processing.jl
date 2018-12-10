@@ -53,7 +53,23 @@ function sampledata(expt, index; downsamp=2)
     # Adjust time so that the t=0 occurs in the first retained sample
     t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
     t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsamp)
-    AxisArray(z, Axis{:time}(t), Axis{:channel}(1:size(z,2)))
+    coilsyms = if isempty(expt.coils)
+        [Symbol("C$i") for i in 1:length(acq.channel_info)]
+    else
+        # Match channels.
+        #
+        # This coil data appears to connect to the measurement data via the
+        # channel header channel_id field, when the relation
+        #
+        #     channel_id-1 == adc_channel_connected
+        #
+        # holds. Why the -1 is here is a mystery - perhaps the channel_id field
+        # uses 1-based indexing.
+        [Symbol(expt.coils[findfirst(e->e.adc_channel_connected-1 == c.channel_id, expt.coils)].element)
+         for c in acq.channel_info]
+    end
+    channel_ids = [Int(c.channel_id) for c in acq.channel_info]
+    AxisArray(z, Axis{:time}(t), Axis{:channel}(coilsyms))
 end
 
 # Internal function for downsampling and truncating of acqusition data

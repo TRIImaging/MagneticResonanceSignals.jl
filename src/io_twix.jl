@@ -107,7 +107,8 @@ end
 
 #-------------------------------------------------------------------------------
 """
-    MRExperiment(metadata, acq_data)
+    MRExperiment(metadata, coils, acq_data)
+    load_twix(twix_file_name)
 
 Container for data from a generic magnetic resonance experiment: a series of
 `Acquisition`s, each of which records the coil response due to induced nuclear
@@ -120,6 +121,7 @@ tool from the Siemens proprietary IDEA development environment.
 """
 struct MRExperiment
     metadata # TODO: rename to yaps, as we're only parsing yaps data.
+    coils::Vector{RxCoilElementData}
     data::Vector{Acquisition}
 end
 
@@ -260,7 +262,13 @@ function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
         # program (...I think?)
         @debug "Header section names" keys(header_sections)
         metadata = parse_header_yaps(header_sections["MeasYaps"])
-        MRExperiment(metadata, acquisitions)
+        coils = RxCoilElementData[]
+        try
+            coils = parse_yaps_rx_coil_selection(metadata)
+        catch exc
+            @error "Could not parse coil metadata" exception=(exc,catch_backtrace())
+        end
+        MRExperiment(metadata, coils, acquisitions)
     end
 end
 
