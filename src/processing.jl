@@ -49,14 +49,15 @@ function sampledata(expt, index; downsamp=2)
     # the ringing artifacts of doing this with a simple FFT).
     cutpre  = acq.cutoff_pre
     cutpost = acq.cutoff_post
-    downsample_and_truncate(acq.data, dwell_time(expt), cutpre, cutpost, downsamp)
+    data = acq.data
+    # Adjust time so that the t=0 occurs in the first retained sample
+    t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
+    t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsamp)
+    AxisArray(z, Axis{:time}(t), Axis{:channel}(1:size(z,2)))
 end
 
-# Internal function for downsampling, truncating, and wrapping an acqusition in
-# an AxisArray
-function downsample_and_truncate(z, dt, cutpre, cutpost, downsamp)
-    # Adjust time so that the t=0 occurs in the first retained sample
-    t = ((0:size(z,1)-1) .- cutpre)*dt
+# Internal function for downsampling and truncating of acqusition data
+function downsample_and_truncate(t, z, cutpre, cutpost, downsamp)
     if downsamp > 1
         # Do downsampling if requested, via naive Fourier filtering with square
         # window.  This appears to be the way Siemens implement this as well.
@@ -75,7 +76,6 @@ function downsample_and_truncate(z, dt, cutpre, cutpost, downsamp)
         cutpost = Int(cutpost/downsamp)
     end
     # Add descriptive axes to the array and remove 
-    fid = AxisArray(z, Axis{:time}(t), Axis{:channel}(1:size(z,2)))
-    fid[cutpre+1:end-cutpost,:]
+    t[cutpre+1:end-cutpost], z[cutpre+1:end-cutpost,:]
 end
 
