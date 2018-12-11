@@ -193,32 +193,30 @@ scanner_time(acq::Acquisition) = 2500u"μs" * acq.time_stamp
 dwell_time(expt::MRExperiment) = expt.metadata["sRXSPEC.alDwellTime[0]"]*u"ns"
 
 function Base.show(io::IO, expt::MRExperiment)
-    println(io, "MRExperiment metadata:")
+    println(io,
+         "MRExperiment metadata:")
     meta = standard_metadata(expt)
     print(io, """
             Protocol           = $(meta.protocol_name)
             Sequence File Name = $(meta.sequence_name)
             Software Version   = $(meta.software_version)
             Reference Date     = $(meta.ref_epoch)
+            Coils              = $(unique([c.coil_id for c in expt.coils]))
           """)
     if isempty(expt.data)
         return
     end
     tmin,tmax = extrema(scanner_time(expt))
-    print(io, rstrip("""
+    print(io, """
           Acquisition summary:
             Number   = $(length(expt.data))
             Duration = $(uconvert(u"s", 1.0*(tmax-tmin)))
-          """))
-    println(io,
-    )
+          """)
     counters = [a.loop_counters for a in expt.data]
-    sep = ""
     for (i,label) in enumerate(counter_labels(expt))
         cntmin,cntmax = extrema(c[i] for c in counters)
         if cntmin != 0 || cntmax != 0
-            print(io, sep, "  Loop index $i in [$cntmin,$cntmax]   ($label)")
-            sep = "\n"
+            println(io, "  Loop index $i in [$cntmin,$cntmax]   ($label)")
         end
     end
 end

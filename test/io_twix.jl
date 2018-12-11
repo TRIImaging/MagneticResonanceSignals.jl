@@ -1,4 +1,3 @@
-
 @testset "twix input" begin
     twix = load_twix("sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
     @test length(twix.data) == 1
@@ -7,6 +6,18 @@
     @test eltype(acq.data) == ComplexF32
     @test acq.cutoff_pre  == 0x0002
     @test acq.cutoff_post == 0x001e
+
+    @test sprint(show, twix) == """
+        MRExperiment metadata:
+          Protocol           = svs_lcosy
+          Sequence File Name = %CustomerSeq%\\svs_lcosy
+          Software Version   = N4_VE11C_LATEST_20160120
+          Reference Date     = 2018-11-27T12:22:52
+          Coils              = ["HeadNeck_64"]
+        Acquisition summary:
+          Number   = 1
+          Duration = 0.0 s
+        """
 end
 
 @testset "data extraction" begin
