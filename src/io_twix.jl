@@ -150,7 +150,11 @@ function ref_epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
             # year 3000 here - just ignore that one.
         end
     end
-    isempty(dts) ? nothing : minimum(dts)
+    # TODO: Some scans may not have tReferenceImage. Seems there's
+    # tFrameOfReference in the Meas header, so we should probably be pulling
+    # that instead of looking in the YAPS.  Need to implement an XProtocol
+    # parser :-(
+    isempty(dts) ? missing : minimum(dts)
 end
 
 """
@@ -520,18 +524,27 @@ function parse_yaps_rx_coil_selection(yaps)
     end
     coils = RxCoilElementData[]
     for i = 0:ncoil-1
-        push!(coils, RxCoilElementData(
-            yaps[prefix*".asList[$i].sCoilElementID.tElement"],
-            yaps[prefix*".asList[$i].sCoilElementID.tCoilID"],
-            reinterpret(UInt32, Int32(yaps[prefix*".asList[$i].sCoilElementID.ulUniqueKey"])),
-            yaps[prefix*".asList[$i].sCoilElementID.lCoilCopy"],
-            yaps[prefix*".asList[$i].sCoilProperties.eCoilType"],
-            yaps[prefix*".asList[$i].lRxChannelConnected"],
-            yaps[prefix*".asList[$i].lADCChannelConnected"],
-            yaps[prefix*".asList[$i].lMuxChannelConnected"],
-            yaps[prefix*".asList[$i].uiInsertionTime"],
-            yaps[prefix*".asList[$i].lElementSelected"],
-       ))
+        try
+            push!(coils, RxCoilElementData(
+                yaps[prefix*".asList[$i].sCoilElementID.tElement"],
+                yaps[prefix*".asList[$i].sCoilElementID.tCoilID"],
+                reinterpret(UInt32, Int32(yaps[prefix*".asList[$i].sCoilElementID.ulUniqueKey"])),
+                yaps[prefix*".asList[$i].sCoilElementID.lCoilCopy"],
+                yaps[prefix*".asList[$i].sCoilProperties.eCoilType"],
+                yaps[prefix*".asList[$i].lRxChannelConnected"],
+                yaps[prefix*".asList[$i].lADCChannelConnected"],
+                yaps[prefix*".asList[$i].lMuxChannelConnected"],
+                yaps[prefix*".asList[$i].uiInsertionTime"],
+                yaps[prefix*".asList[$i].lElementSelected"],
+           ))
+        catch exc
+            exc isa KeyError || rethrow()
+            # Unclear why this happens, but it seems that `ncoil` is not an
+            # accurate estimation of the number of coils (is it an upper bound!?)
+            # May be common, in which case we should downgrade this to a debug message.
+            @warn "Could not find some metadata for coil $i" #=
+                =# exception=(exc,catch_backtrace())
+        end
     end
     coils
 end
