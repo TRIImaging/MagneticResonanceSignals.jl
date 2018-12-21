@@ -1,9 +1,10 @@
 julia 0.6 2.0
 MicroLogging 0.3.0
-StaticArrays # fixme need > 0.8.3
+StaticArrays 0.9.0
 DataStructures
 Compat 1.2.0
 RecipesBase
 AxisArrays
 Unitful 0.12.0
 FFTW
+Colors

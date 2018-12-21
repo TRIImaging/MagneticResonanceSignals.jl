@@ -1,5 +1,3 @@
-__precompile__()
-
 module TriMRS
 
 using MicroLogging
@@ -14,7 +12,9 @@ using FFTW
 using Compat
 using Compat.LinearAlgebra
 
+# Plotting
 using RecipesBase
+using Colors
 
 include("io_twix.jl")
 include("io_felix.jl")
@@ -28,16 +28,20 @@ include("processing.jl")
 include("windows.jl")
 include("plotting.jl")
 
+# Data structures and metadata access for MR experiments
 export
     MRExperiment,
     meta_search,
     standard_metadata,
     scanner_time
 
+# Old spectro data format. This isn't really useful and should be removed.
 export SpectroData,
     get_fid,
     fid_length
 
+# Axes
+# TODO: Deprecate / remove all this in favour of AxisArray
 export
     MRAxis,
     hertz_to_ppm,
@@ -46,10 +50,12 @@ export
     frequency_axis,
     frequency_axis_ppm
 
+# IO
 export load_rda,
     save_rda,
     load_twix
 
+# Data processing
 export
     MRWindows,
     sampledata,
@@ -57,6 +63,10 @@ export
     pca_channel_combiner,
     combine_channels,
     spectrum
+
+# Plotting
+export
+    felix_colors
 
 using .MRWindows
 
