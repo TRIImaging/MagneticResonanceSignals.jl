@@ -60,7 +60,8 @@ function frequency_axis_ppm(a::MRAxis)
 end
 
 function frequency_axis(a::AxisArray)
-    n = length(a.time)
+    t = AxisArrays.axes(a, Axis{:time}).val
+    n = length(t)
     zero_offset = floor(Int, n/2)
-    (-zero_offset:n-1-zero_offset) * uconvert.(u"Hz", one(eltype(a.time))/(n*step(a.time)))
+    (-zero_offset:n-1-zero_offset) * uconvert.(u"Hz", one(eltype(t))/(n*step(t)))
 end

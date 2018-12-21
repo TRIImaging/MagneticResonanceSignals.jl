@@ -14,7 +14,8 @@ function zeropad(fid::AxisArray, pad)
         return fid
     else
         padded = [fid; zeros(length(fid)*(pad-1))]
-        t2 = first(fid.time) .+ (0:length(padded)-1)*step(fid.time)
+        t = AxisArrays.axes(fid, Axis{:time}).val
+        t2 = first(t) .+ (0:length(padded)-1)*step(t)
         AxisArray(padded, Axis{:time}(t2))
     end
 end

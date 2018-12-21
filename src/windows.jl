@@ -30,7 +30,7 @@ Apply `windowfunc` over the dimensionless time range `(0:tlen-1)/tlen)` of
 """
 function apply_window!(fid::AxisArray, windowfunc)
     dim = axisdim(fid, Axis{:time})
-    t = fid.time
+    t = AxisArrays.axes(fid, Axis{:time}).val
     w = windowfunc.((0:length(t)-1)/length(t))
     # Reshape to broadcast `w` only along time dimension
     windowshape = ntuple(i->i==dim ? length(t) : 1, ndims(fid))
@@ -42,7 +42,9 @@ end
 """
     sinebell(fid; skew, n)
 
-Apply a skewed sine bell window, as in Felix NMR (zero phase shift).
+Apply a skewed sine bell window over the full time range of `fid`. This should
+be equivalent to the skewed sinebell window with zero phase shift parameter
+from the Felix NMR software.
 """
 function sinebell(fid; skew, n)
     apply_window!(copy(fid), (t)->_sinebell(t, skew, n))
