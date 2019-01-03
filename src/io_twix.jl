@@ -162,7 +162,7 @@ Extract scanner software version from experiment metadata
 """
 function software_version(expt::MRExperiment)
     get(expt.metadata, "sProtConsistencyInfo.tBaselineString") do
-        get(expt.metadata, "sProtConsistencyInfo.tMeasuredBaselineString",nothing)
+        get(expt.metadata, "sProtConsistencyInfo.tMeasuredBaselineString", missing)
     end
 end
 
@@ -177,8 +177,8 @@ end
 Get some standard MR metadata
 """
 function standard_metadata(expt::MRExperiment)
-    protname = get(expt.metadata,"tProtocolName",nothing)
-    seqname = get(expt.metadata,"tSequenceFileName",nothing)
+    protname = get(expt.metadata,"tProtocolName",missing)
+    seqname = get(expt.metadata,"tSequenceFileName",missing)
     epoch = ref_epoch(expt)
     version = software_version(expt)
     MRMetadata(protname, seqname, version, epoch)
