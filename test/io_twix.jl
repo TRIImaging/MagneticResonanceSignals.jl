@@ -1,5 +1,5 @@
 @testset "twix input" begin
-    twix = load_twix("sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+    twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
     @test length(twix.data) == 1
     acq = twix.data[1]
     @test size(acq.data) == (2080,34)
@@ -21,7 +21,7 @@
 end
 
 @testset "data extraction" begin
-    twix = load_twix("sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+    twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
     samples = sampledata(twix, 1, downsamp=1)
     @test size(samples) == (2048,34)
     @test first(getaxis(samples, :time)) == 0u"μs"
@@ -43,7 +43,7 @@ end
 
 
 @testset "coil select parsing" begin
-    yaps_dict = TriMRS.parse_header_yaps(String(read("twix_header_data/PRESS_TE135_Breast_Coil_Headers/MeasYaps")))
+    yaps_dict = TriMRS.parse_header_yaps(String(read("twix/PRESS_TE135_Breast_Coil_Headers/MeasYaps")))
     @test length(@test_logs((:warn, "Could not find some metadata for coil 7"),
                             TriMRS.parse_yaps_rx_coil_selection(yaps_dict))) == 7
 end
