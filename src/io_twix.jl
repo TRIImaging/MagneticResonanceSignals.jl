@@ -377,7 +377,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         #
         # For now, we ignore non-MR data which has a different binary layout.
         if sync_data || hp_feedback
-            @info "Ignoring unknown data packet" sync_data hp_feedback
+            @debug "Ignoring unknown data packet" sync_data hp_feedback
             continue
         end
         #=
