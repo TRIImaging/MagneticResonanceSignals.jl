@@ -37,7 +37,6 @@ combine_channels(combiner::ChannelCombiner, data::AbstractMatrix) =
 combine_channels(combiner::ChannelCombiner, acq::Acquisition) =
     acq.data[:,combiner.channels] * combiner.weights
 
-
 """
     combine_channels(acq::Acquisition)
 
@@ -97,4 +96,16 @@ end
 # Following would be handy, but how do we figure out which acquisitions relate
 # to the channel combination we're interested in?
 # pca_channel_combiner(expt::MRExperiment; kws...) = pca_channel_combiner(expt.data, kws...)
+
+
+###
+# Hacks: Need the following to preserve the AxisArray axes :-((
+function combine_channels(combiner::ChannelCombiner, data::AxisArray)
+    combined = combine_channels(combiner, data.data)
+    combined::Array  # Check that we don't double wrap in the future...
+    AxisArray(combined, AxisArrays.axes(data,Axis{:time}))
+end
+function Statistics.mean(a::AbstractArray{<:AxisArray}, args...)
+	AxisArray(mean((d.data for d in a), args...), AxisArrays.axes(a[1]))
+end
 

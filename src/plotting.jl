@@ -52,3 +52,32 @@ const felix_colors = [
     RGBN0f8(1.0,1.0,0.914),
     RGBN0f8(1.0,1.0,0.882),
 ]
+
+
+# FIXME: Type piracy; should get this into AxisArrays instead!
+using RecipesBase
+
+@recipe function plot(a::AxisArray)
+    ax1 = AxisArrays.axes(a,1)
+    xlabel --> AxisArrays.axisname(ax1)
+    if ndims(a) == 1
+        ax1.val, a.data
+    else
+        ax2 = AxisArrays.axes(a,2)
+        # Categorical axes print as a set of labelled series
+        if axistrait(ax2) === Categorical
+            for i in eachindex(ax2.val)
+                @series begin
+                    label --> "$(AxisArrays.axisname(ax2)) $(ax2.val[i])"
+                    ax1.val, a.data[:,i]
+                end
+            end
+        else
+            # Other axes as a 2D array
+            ylabel --> AxisArrays.axisname(ax2)
+            seriestype --> :heatmap
+            ax1.val, ax2.val, a.data
+        end
+    end
+end
+
