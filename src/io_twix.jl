@@ -243,7 +243,8 @@ function check_twix_type(io)
 end
 
 """
-    load_twix(filename; header_only=false, acquisition_filter=(acq)->true)
+    load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
+              meas_selector=last)
 
 Load raw Siemens twix ".dat" format, producing an `MRExperiment` containing a
 sequence of acqisitions.
@@ -251,9 +252,14 @@ sequence of acqisitions.
 For large files, acquisitions may be filtered out during file loading by
 providing a predicate `acquisition_filter(acq)` which returns true when `acq`
 should be kept.  By default, all acquisitions are retained.
+
+N4 VD-version twix may have data from more than one sequence (for example, the
+tune-up data may be included). Normally the data you're looking for is in the
+`meas_selector=last` chunk, but meas_selector is provided for the cases where
+you want to select other measurements.
 """
 function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
-                   meas_selector=(inds)->last(inds))
+                   meas_selector=last)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         check_twix_type(io)
@@ -275,19 +281,19 @@ function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
 end
 
 """
-    dump_twix_headers(filename, dump_dir)
+    dump_twix_headers(filename, dump_dir; meas_selector=last)
 
 Dump twix header sections verbatim into files `dump_dir/sect_name`, one for
 each section.  Mostly useful for debugging.
 """
-function dump_twix_headers(filename, dump_dir)
+function dump_twix_headers(filename, dump_dir; meas_selector=last)
     if !isdir(dump_dir)
         mkdir(dump_dir)
     end
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         check_twix_type(io)
-        header_sections,acquisitions = load_twix_vd(io, true, (a)->true, (inds)->last(inds))
+        header_sections,acquisitions = load_twix_vd(io, true, (a)->true, meas_selector)
         for (sect_name,sect_data) in header_sections
             open(joinpath(dump_dir, sect_name), "w") do out
                 write(out, sect_data)
@@ -309,18 +315,26 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     twix_id, num_measurements = read(io, SVector{2,Int32})
     # vd file can contain multiple measurements, but we only want the MRS.
     # Assume that the MRS is the last measurement.
-    measurement_index = meas_selector(1:num_measurements)
+    @debug "Opened TWIX VD" twix_id num_measurements
 
-    # measurement headers are each 152 bytes at start of segment
-    seek(io, 8 + 152 * (measurement_index-1))
-    meas_uid, file_id = read(io, SVector{2,Int32})
-    meas_offset, meas_length = read(io, SVector{2,Int64})
-    patient_name = read_zero_packed_string(io, 64)
-    protocol_name = read_zero_packed_string(io, 64)
-    @debug "Reading TWIX VD Header" meas_uid file_id patient_name protocol_name
+    measurement_data = []
+    for i=1:num_measurements
+        meas_uid, file_id = read(io, SVector{2,Int32})
+        meas_offset, meas_length = read(io, SVector{2,Int64})
+        patient_name = read_zero_packed_string(io, 64)
+        protocol_name = read_zero_packed_string(io, 64)
+        @debug "Reading TWIX VD Header"   #=
+            =# meas_uid file_id           #=
+            =# meas_offset meas_length    #=
+            =# patient_name protocol_name
+        push!(measurement_data,
+              (meas_uid=meas_uid, file_id=file_id,
+               meas_offset=meas_offset, meas_length=meas_length,
+               patient_name=patient_name, protocol_name=protocol_name))
+    end
+    meas_header = meas_selector(measurement_data)
 
-    # offset points to where the actual data is in the file
-    seek(io, meas_offset)
+    seek(io, meas_header.meas_offset)
 
     header_size = read(io, UInt32)
     header      = read(io, header_size - sizeof(UInt32))
@@ -377,7 +391,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         #
         # For now, we ignore non-MR data which has a different binary layout.
         if sync_data || hp_feedback
-            @debug "Ignoring unknown data packet" sync_data hp_feedback
+            @debug "Ignoring unknown data packet" sync_data hp_feedback maxlog=10
             continue
         end
         #=
