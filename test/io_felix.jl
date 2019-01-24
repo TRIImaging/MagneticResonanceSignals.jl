@@ -10,6 +10,8 @@
 
     words = reinterpret(UInt32, take!(io))
 
+    # Just some basic tests here, to check that the metadata gets in the
+    # correct place and the data is appended.
     @test words[1] == 0x04030201
     @test words[2] == 256 # Size of header
 

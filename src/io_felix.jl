@@ -79,9 +79,12 @@ function felix_header(; npoints, bandwidth, frequency)
     # parameters further down. Is this a flag for ND data?
     iwords[121] = 1
 
+    # The names of parameters on the right hand side here are the names of the
+    # associated variables inside Felix.
+
     # Data size
-    iwords[122] = npoints[1]
-    iwords[123] = npoints[2]
+    iwords[122] = npoints[1]  # nacqs1
+    iwords[123] = npoints[2]  # nacqs2
     #iwords[124] = nacqs3
     #iwords[125] = nacqs4
     #iwords[126] = nacqs5
