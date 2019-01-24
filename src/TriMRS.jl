@@ -53,7 +53,8 @@ export
 # IO
 export load_rda,
     save_rda,
-    load_twix
+    load_twix,
+    save_felix
 
 # Data processing
 export
