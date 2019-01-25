@@ -1,10 +1,15 @@
+# Utility to convert and strip units. TODO: Remove this utility if it's
+# improved upstream in Unitful - see
+# https://github.com/ajkeller34/Unitful.jl/issues/48#issuecomment-457434851
+ucstrip(u, x) = float(ustrip(uconvert(u, x)))
+
 
 """
     felix_header(; npoints, bandwidth, frequency)
 
 Create Felix NMR header format for 2D NMR experiment with 2D data matrix size
 `npoints = (t2_npoints, t1_npoints)`, spectral width `bandwidth = (t2_bw,
-t1_bw)` and given spectrometer `frequency`.
+t1_bw)` and given spectrometer `frequency` (unit-compatible with Hz).
 
 
 # Notes about Felix .dat formats.
@@ -62,10 +67,10 @@ function felix_header(; npoints, bandwidth, frequency)
     #iwords[98] = domain      # domain (0=time, 1=frequency)
     #iwords[99] = axtype      # axis type (0=none, 1=points, 3=ppm)
     # For 1D?
-    fwords[111] = bandwidth[1] # swidth
-    fwords[112] = frequency / 1e6   # sfreq
-    #fwords[113] = refpt        # refpt
-    #fwords[114] = refHz        # ref
+    fwords[111] = ucstrip(u"Hz", bandwidth[1]) # swidth
+    fwords[112] = ucstrip(u"MHz", frequency)   # sfreq
+    #fwords[113] = refpt       # refpt
+    #fwords[114] = refHz       # ref
     #fwords[116] = phase0[1]
     #fwords[117] = phase1[1]
 
@@ -99,17 +104,17 @@ function felix_header(; npoints, bandwidth, frequency)
     #iwords[132] = quadf5
     #iwords[133] = quadf6
 
-    # Spectrometer Frequency (in MHz)  a1rsf1 .. a1rsf6
-    fwords[134] = frequency / 1e6
-    fwords[135] = frequency / 1e6
+    # Spectrometer Frequency (in MHz)  a1rsf1 ... a1rsf6
+    fwords[134] = ucstrip(u"MHz", frequency)
+    fwords[135] = ucstrip(u"MHz", frequency)
     #fwords[136] = a1rsf3
     #fwords[137] = a1rsf4
     #fwords[138] = a1rsf5
     #fwords[139] = a1rsf6
 
     # Sweep width (Hz)   # a1rsw1 .. a1rsw6
-    fwords[140] = bandwidth[1]
-    fwords[141] = bandwidth[2]
+    fwords[140] = ucstrip(u"Hz", bandwidth[1])
+    fwords[141] = ucstrip(u"Hz", bandwidth[2])
     #fwords[142] = a1rsw3
     #fwords[143] = a1rsw4
     #fwords[144] = a1rsw5
@@ -187,7 +192,7 @@ end
 
 Create Felix NMR file for 2D NMR experiment with 2D data matrix size
 `npoints = size(data)`, spectral width `bandwidth = (t2_bw, t1_bw)` and given
-spectrometer `frequency`.
+spectrometer `frequency`, which should be unit-compatible with Hz.
 
 `data[i,:]` is assumed to contain the real time FIDs as acquired in the
 standard 2D COSY experiment (ie, the "t2" dimension).

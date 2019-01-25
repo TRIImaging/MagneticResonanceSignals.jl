@@ -4,9 +4,9 @@
                       3 6im]
 
     io = IOBuffer()
-    bandwidth = (123.0, 456.0)
-    frequency_Hz = 500.5e6
-    save_felix(io, data; bandwidth=bandwidth, frequency=frequency_Hz)
+    bandwidth = (123u"Hz", 456u"Hz")
+    frequency = 500.5u"MHz"
+    save_felix(io, data; bandwidth=bandwidth, frequency=frequency)
 
     words = reinterpret(UInt32, take!(io))
 
@@ -23,11 +23,11 @@
     @test all(header[128:133] .== 1)
 
     fheader = reinterpret(Float32, header)
-    @test fheader[134] == frequency_Hz/1e6
-    @test fheader[135] == frequency_Hz/1e6
+    @test fheader[134] == frequency/u"MHz"
+    @test fheader[135] == frequency/u"MHz"
 
-    @test fheader[140] == bandwidth[1]
-    @test fheader[141] == bandwidth[2]
+    @test fheader[140] == bandwidth[1]/u"Hz"
+    @test fheader[141] == bandwidth[2]/u"Hz"
 
     @test words[3+256] == size(data,1)*2
     @test words[3+256 .+ (1:6)] == reinterpret(UInt32, data[:,1])
