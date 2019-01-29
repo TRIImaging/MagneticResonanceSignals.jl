@@ -197,7 +197,7 @@ spectrometer `frequency`, which should be unit-compatible with Hz.
 `data[i,:]` is assumed to contain the real time FIDs as acquired in the
 standard 2D COSY experiment (ie, the "t2" dimension).
 """
-save_felix(fname::String, data; kwargs...) = open(fname) do io
+save_felix(fname::String, data; kwargs...) = open(fname, "w") do io
     save_felix(io, data; kwargs...)
 end
 
