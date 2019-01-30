@@ -22,7 +22,7 @@ end
 
 @testset "data extraction" begin
     twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
-    samples = sampledata(twix, 1, downsamp=1)
+    samples = sampledata(twix, 1, downsample=1)
     @test size(samples) == (2048,34)
     @test first(getaxis(samples, :time)) == 0u"μs"
     @test step(getaxis(samples, :time)) == 500u"μs"
@@ -35,7 +35,7 @@ end
     ]
 
     # With downsampling
-    samples = sampledata(twix, 1, downsamp=2)
+    samples = sampledata(twix, 1, downsample=2)
     @test size(samples) == (1024,34)
     @test first(getaxis(samples, :time)) == 0u"μs"
     @test step(getaxis(samples, :time)) == 1000u"μs"

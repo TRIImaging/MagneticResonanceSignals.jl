@@ -35,14 +35,14 @@ function spectrum(time_samples::AxisArray)
 end
 
 """
-    sampledata(expt, index; downsamp=2)
+    sampledata(expt, index; downsample=1)
 
 Return the acquired data from `expt` at a given acqusition `index`.  If
-`downsamp>1`, the data will be subsampled by the given rate by truncating the
+`downsample>1`, the data will be subsampled by the given rate by truncating the
 tails of the signal in the Fourier spectral domain. This has the effect of
 removing noise by filtering away irrelevant high and low frequency components.
 """
-function sampledata(expt, index; downsamp=2)
+function sampledata(expt, index; downsample=1)
     acq = expt.data[index]
     # The siemens sequence SVS_SE provides a few additional samples before and
     # after the desired ones. They comment that this is mainly to allow some
@@ -53,7 +53,7 @@ function sampledata(expt, index; downsamp=2)
     data = acq.data
     # Adjust time so that the t=0 occurs in the first retained sample
     t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
-    t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsamp)
+    t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsample)
     coilsyms = if isempty(expt.coils)
         [Symbol("C$i") for i in 1:length(acq.channel_info)]
     else
@@ -74,8 +74,8 @@ function sampledata(expt, index; downsamp=2)
 end
 
 # Internal function for downsampling and truncating of acqusition data
-function downsample_and_truncate(t, z, cutpre, cutpost, downsamp)
-    if downsamp > 1
+function downsample_and_truncate(t, z, cutpre, cutpost, downsample)
+    if downsample > 1
         # Do downsampling if requested, via naive Fourier filtering with square
         # window.  This appears to be the way Siemens implement this as well.
         # It's a very spectrum-focussed way to do things and is a bit of an
@@ -85,12 +85,12 @@ function downsample_and_truncate(t, z, cutpre, cutpost, downsamp)
         # instead of an error?
         s1 = fft(z, 1)
         N = size(s1,1)
-        n = Int(N/downsamp/2)
-        s2 = [s1[1:n,:]; s1[end-n+1:end,:]] ./ downsamp
+        n = Int(N/downsample/2)
+        s2 = [s1[1:n,:]; s1[end-n+1:end,:]] ./ downsample
         z = ifft(s2, 1)
-        t = t[1:downsamp:end]
-        cutpre  = Int(cutpre/downsamp)
-        cutpost = Int(cutpost/downsamp)
+        t = t[1:downsample:end]
+        cutpre  = Int(cutpre/downsample)
+        cutpost = Int(cutpost/downsample)
     end
     # Add descriptive axes to the array and remove 
     t[cutpre+1:end-cutpost], z[cutpre+1:end-cutpost,:]
