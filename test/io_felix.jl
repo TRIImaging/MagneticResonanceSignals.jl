@@ -1,5 +1,5 @@
 @testset "felix output" begin
-    data = ComplexF32[1 4im;
+    data = ComplexF64[1 4im;  # will be written as ComplexF32
                       2 5im;
                       3 6im]
 
@@ -30,7 +30,7 @@
     @test fheader[141] == bandwidth[2]/u"Hz"
 
     @test words[3+256] == size(data,1)*2
-    @test words[3+256 .+ (1:6)] == reinterpret(UInt32, data[:,1])
+    @test reinterpret(ComplexF32, words[3+256 .+ (1:6)]) == data[:,1]
     @test words[3+256 + 6 + 1] == size(data,1)*2
-    @test words[3+256 + 6 + 1 .+ (1:6)] == reinterpret(UInt32, data[:,2])
+    @test reinterpret(ComplexF32, words[3+256 + 6 + 1 .+ (1:6)]) == data[:,2]
 end

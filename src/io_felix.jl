@@ -178,10 +178,11 @@ function felix_header(; npoints, bandwidth, frequency)
     iwords
 end
 
-function write_felix_data(io, data::AbstractArray{ComplexF32})
+function write_felix_data(io, data)
     for i=1:size(data,2)
-        fid = reinterpret(Float32, data[:,i])
-        nwords = length(fid)  # Felix format uses 32-bit words
+        fid = ComplexF32.(data[:,i])
+        # Felix format counts data in 32-bit words
+        nwords = 2*length(fid)
         write(io, convert(Int32, nwords))
         write(io, fid)
     end
