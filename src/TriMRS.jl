@@ -16,15 +16,19 @@ using Compat.LinearAlgebra
 using RecipesBase
 using Colors
 
+include("core.jl")
+include("LCOSY.jl")
+
 include("io_twix.jl")
 include("io_felix.jl")
 include("io_rda.jl")
-include("MRAxis.jl")
 
-include("FIDData.jl")
+# TODO: Kill off MRAxis
+include("MRAxis.jl")
 
 include("coil_combination.jl")
 include("processing.jl")
+
 include("windows.jl")
 include("plotting.jl")
 
@@ -34,11 +38,6 @@ export
     meta_search,
     standard_metadata,
     scanner_time
-
-# Old spectro data format. This isn't really useful and should be removed.
-export SpectroData,
-    get_fid,
-    fid_length
 
 # Axes
 # TODO: Deprecate / remove all this in favour of AxisArray

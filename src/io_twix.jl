@@ -13,6 +13,26 @@ struct ChannelHeader
     channel_id    ::UInt16
 end
 
+struct LoopCounters <: FieldVector{14, UInt16}
+    line::UInt16
+    acquisition::UInt16
+    slice::UInt16
+    partition::UInt16
+    echo::UInt16
+    phase::UInt16
+    repetition::UInt16
+    set::UInt16
+    seg::UInt16
+    ida::UInt16
+    idb::UInt16
+    idc::UInt16
+    idd::UInt16
+    ide::UInt16
+end
+
+loop_counter_index(name) = findfirst(isequal(name), fieldnames(TriMRS.LoopCounters))::Int
+
+
 """
 Data from a single acquisition by a Siemens MR scanner (software version VD?)
 """
@@ -46,7 +66,7 @@ struct Acquisition
     # raw data size from ADC
     num_samples                 ::UInt16
     num_channels                ::UInt16
-    loop_counters               ::SVector{14,UInt16}
+    loop_counters               ::LoopCounters
     cutoff_pre                  ::UInt16
     cutoff_post                 ::UInt16
     kspace_centre_column        ::UInt16
@@ -166,16 +186,6 @@ function software_version(expt::MRExperiment)
     end
 end
 
-struct MRMetadata
-    protocol_name
-    sequence_name
-    software_version
-    ref_epoch # Epoch of localizer image
-end
-
-"""
-Get some standard MR metadata
-"""
 function standard_metadata(expt::MRExperiment)
     protname = get(expt.metadata,"tProtocolName",missing)
     seqname = get(expt.metadata,"tSequenceFileName",missing)
@@ -575,3 +585,88 @@ end
 function meta_search(expt::MRExperiment, pattern::String)
     Dict(k=>v for (k,v) in expt.metadata if occursin(Regex(pattern,"i"), k))
 end
+
+#-------------------------------------------------------------------------------
+
+"""
+    mr_recognize(twix::MRExperiment)
+
+Recognizes spectro experiments in Siemens twix format, producing one of:
+  * LCOSY
+  * PRESS (TODO)
+"""
+function mr_recognize(twix::MRExperiment)
+    @debug "Recognizing twix input" twix
+
+    meta = standard_metadata(twix)
+    @debug "Found standard metadata" meta
+
+    is_svs_lcosy = occursin("svs_lcosy", meta.sequence_name)
+    is_srcosy    = occursin("srcosy", meta.sequence_name)
+    if is_svs_lcosy || is_srcosy
+        release_versions = ["%CustomerSeq%\\srcosy",
+                            "%CustomerSeq%\\svs_lcosy-1"]
+        if !(meta.sequence_name in release_versions)
+            @warn """
+                  Sequence $(meta.sequence_name) looks like an L-COSY sequence,
+                  but is not one of the versions I recognize. (It might be a
+                  development version and you might get strange results!)
+                  """ twix meta
+        end
+
+        frequency = twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"]*u"Hz"
+        num_averages = twix.metadata["lAverages"]
+
+        t1_inc_loop_idx = 0
+
+        if is_srcosy
+            # UUUGH. Number of t1 increments must be inferred from repetitions
+            # loop counter.
+            num_t1_incs = Int(maximum(d.loop_counters.repetition for d in twix.data))
+            t1_inc_loop_idx = loop_counter_index(:repetition)
+            dt1         = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
+        elseif is_svs_lcosy
+            num_t1_incs  = twix.metadata["sWipMemBlock.alFree[3]"]
+            t1_inc_loop_idx = loop_counter_index(:partition)
+            # TODO - stash legacy_timing somewhere
+            legacy_timing = get(twix.metadata, "sWipMemBlock.alFree[5]", 0) == 1
+            dt1           = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
+        end
+
+        TE = get(twix.metadata,"alTE[0]", 0)u"μs"
+        if TE != 30u"ms"
+            @warn "Found unexpected TE=$TE in L-COSY sequence"
+        end
+
+        if length(twix.data) != num_t1_incs*num_averages
+            error("FIXME: Unrecognized cosy data - there must be some ref scans?")
+        end
+
+        ref_scans = Int[]
+        lcosy_scans = zeros(Int, num_t1_incs, num_averages)
+
+        for (i,acq) in enumerate(twix.data)
+            if acq.loop_counters.phase != 0
+                @warn "Ignoring ref scan..."
+                continue
+            end
+            t1_index = acq.loop_counters[t1_inc_loop_idx] + 1
+            avg_index = acq.loop_counters.acquisition + 1
+            lcosy_scans[t1_index, avg_index] = i
+        end
+
+        if any(lcosy_scans .== 0)
+            error("Missing increments or averages in L-COSY scan:\n"*
+                  findall(lcosy_scans .== 0))
+        end
+
+        # FIXME: This is inefficient
+        num_t2_samps = size(sampledata(twix, 1), 1)
+
+        return LCOSY(frequency, dt1, num_t2_samps, meta, Dict(), ref_scans, lcosy_scans)
+    end
+
+    #@info "Found: " frequency num_t1_incs num_averages dt1
+
+end
+
