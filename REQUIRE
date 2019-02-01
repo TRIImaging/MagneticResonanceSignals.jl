@@ -8,3 +8,4 @@ AxisArrays
 Unitful 0.12.0
 FFTW
 Colors
+ArgParse

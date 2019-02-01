@@ -1,4 +1,4 @@
-#!/usr/bin/env julia-0.6
+#!/usr/bin/env julia
 
 # Script to extract twix headers into a new temporary directory
 
