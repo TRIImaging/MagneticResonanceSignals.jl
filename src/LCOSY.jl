@@ -1,54 +1,65 @@
 """
-A standard L-COSY experiment with (num_averages × num_t1_incs) acquisitions,
+A standard L-COSY experiment with (num_averages × nsamp_t1) acquisitions,
 possibly with reference scans included.
 """
-struct LCOSY{F,T}
+struct LCOSY
     # Metadata
-    frequency::F      # Spectrometer frequency
-    dt1::T            # T1 increment size
-    # te::T             # Echo time (required??)
-    num_t2_samps::Int # Number of samples in direct (T2) direction
-    meta::MRMetadata
-    metadata_extras
+    t1          # Indirect time axis
+    echo_time   # Minimum echo time (first T1 increment)
 
     # Indices into underlying acqusition list
     ref_scans::Vector{Int}
-    lcosy_scans::Matrix{Int}  # num_averages × num_t1_incs
+    lcosy_scans::Matrix{Int}  # num_averages × length(t1)
+
+    # Raw acquisitions
+    acquisitions
 end
+
+standard_metadata(l::LCOSY) = standard_metadata(l.acquisitions)
 
 function Base.show(io::IO, lcosy::LCOSY)
     println(io, """
-                LCOSY MR metadata with
-                    frequency = $(lcosy.frequency)
-                    dt1 = $(lcosy.dt1)
-                    size(lcosy_scans) = $(size(lcosy.lcosy_scans))
-                    length(ref_scans) = $(length(lcosy.ref_scans))
-                    meta = $(lcosy.meta)
-                """)
+                LCOSY experiment:
+                  t1 = $(lcosy.t1)
+                  size(lcosy_scans) = $(size(lcosy.lcosy_scans))
+                  length(ref_scans) = $(length(lcosy.ref_scans))""")
+    show(io, lcosy.acquisitions)
 end
 
 
 """
-    simple_averaging(template, data)
+    simple_averaging(spectro_expt)
 
 Simple channel combination and averaging for spectroscopic data acquisition.
 """
-function simple_averaging(lcosy::LCOSY, twix, downsample=2)
+function simple_averaging(lcosy::LCOSY; downsample=1)
+    acqs = lcosy.acquisitions
+    # Use reference scans if possible to figure out channel combination
+    # weights; if not, use the actual data (which has worse SNR because it's
+    # probably water-suppressed)
+    combiner_inds = lcosy.ref_scans
+    if isempty(combiner_inds)
+        combiner_inds = vec(lcosy.lcosy_scans)
+    end
+    # FIXME: Don't use .data here!!  Clean this up...
+    combiner = pca_channel_combiner(acqs.data[combiner_inds])
 
-    combiner = pca_channel_combiner(twix.data) # FIXME: cleanup
+    # TODO: Calling sampledata to initialize this is kinda ugly...
+    fid1 = combiner(sampledata(acqs, lcosy.lcosy_scans[1,1], downsample=downsample))
+    t2 = AxisArrays.axes(fid1, Axis{:time}).val
 
-    t2_ax = AxisArrays.axes(sampledata(twix,1, downsample=downsample), Axis{:time})
-    t1_val = (0:num_t1_incs-1)*dt1
-    nsamps = length(t2_ax)
-    signal = AxisArray(zeros(ComplexF64, nsamps, num_t1_incs),
-                       Axis{:time2}(t2_ax.val), Axis{:time1}(t1_val))
-    for i=1:num_t1_incs
-        scans_for_avg = (i-1)*num_averages .+ (1:num_averages)
+    num_averages = size(lcosy.lcosy_scans, 1)
+    nsamp_t1 = size(lcosy.lcosy_scans, 2)
+    signal = AxisArray(zeros(eltype(fid1), length(t2), nsamp_t1),
+                       Axis{:time2}(t2), Axis{:time1}(lcosy.t1))
+    for i=1:nsamp_t1
+        scans_for_avg = lcosy.lcosy_scans[:,i]
         # FIXME: Remove this conj?
-        fid = conj.(mean(combiner.(sampledata.(Ref(twix), scans_for_avg))))
+        fid = conj.(mean(combiner.(sampledata.(Ref(acqs), scans_for_avg, downsample=downsample))))
         signal[:,i] = fid
     end
 
-    f1_bandwidth = 1.0/dt1
-    f2_bandwidth = 1.0/step(t2_ax.val)
+    signal
 end
+
+

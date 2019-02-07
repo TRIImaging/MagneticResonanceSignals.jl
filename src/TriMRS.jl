@@ -37,7 +37,8 @@ export
     MRExperiment,
     meta_search,
     standard_metadata,
-    scanner_time
+    scanner_time,
+    mr_load
 
 # Axes
 # TODO: Deprecate / remove all this in favour of AxisArray
@@ -62,7 +63,8 @@ export
     zeropad,
     pca_channel_combiner,
     combine_channels,
-    spectrum
+    spectrum,
+    simple_averaging
 
 # Plotting
 export

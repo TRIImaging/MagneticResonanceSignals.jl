@@ -129,6 +129,7 @@ end
 """
     MRExperiment(metadata, coils, acq_data)
     load_twix(twix_file_name)
+    load_twix(io)
 
 Container for data from a generic magnetic resonance experiment: a series of
 `Acquisition`s, each of which records the coil response due to induced nuclear
@@ -187,11 +188,12 @@ function software_version(expt::MRExperiment)
 end
 
 function standard_metadata(expt::MRExperiment)
-    protname = get(expt.metadata,"tProtocolName",missing)
-    seqname = get(expt.metadata,"tSequenceFileName",missing)
+    protname = get(expt.metadata, "tProtocolName", missing)
+    seqname = get(expt.metadata, "tSequenceFileName", missing)
+    frequency = get(expt.metadata, "sTXSPEC.asNucleusInfo[0].lFrequency",missing)*u"Hz"
     epoch = ref_epoch(expt)
     version = software_version(expt)
-    MRMetadata(protname, seqname, version, epoch)
+    MRMetadata(protname, seqname, version, epoch, frequency)
 end
 
 """
@@ -202,7 +204,7 @@ from an experiment.
 """
 scanner_time(expt::MRExperiment) = scanner_time.(expt.data)
 # 2.5 ms per count... is this reliable?
-scanner_time(acq::Acquisition) = 2500u"μs" * acq.time_stamp
+scanner_time(acq::Acquisition) = 0.0025u"s" * acq.time_stamp
 
 dwell_time(expt::MRExperiment) = expt.metadata["sRXSPEC.alDwellTime[0]"]*u"ns"
 
@@ -215,6 +217,7 @@ function Base.show(io::IO, expt::MRExperiment)
             Sequence File Name = $(meta.sequence_name)
             Software Version   = $(meta.software_version)
             Reference Date     = $(meta.ref_epoch)
+            Frequency          = $(meta.frequency)
             Coils              = $(unique([c.coil_id for c in expt.coils]))
           """)
     if isempty(expt.data)
@@ -268,27 +271,27 @@ tune-up data may be included). Normally the data you're looking for is in the
 `meas_selector=last` chunk, but meas_selector is provided for the cases where
 you want to select other measurements.
 """
-function load_twix(filename; header_only=false, acquisition_filter=(acq)->true,
+function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
                    meas_selector=last)
     # TWIX is little endian binary data, with ascii header
-    open(filename) do io
-        check_twix_type(io)
-        header_sections,acquisitions = load_twix_vd(io, header_only, acquisition_filter,
-                                                    meas_selector)
-        # For now parse the MeasYaps section as it's is the easiest to parse and
-        # contains parameters relevant to downstream interpretation by the ICE
-        # program (...I think?)
-        @debug "Header section names" keys(header_sections)
-        metadata = parse_header_yaps(header_sections["MeasYaps"])
-        coils = RxCoilElementData[]
-        try
-            coils = parse_yaps_rx_coil_selection(metadata)
-        catch exc
-            @error "Could not parse coil metadata" exception=(exc,catch_backtrace())
-        end
-        MRExperiment(metadata, coils, acquisitions)
+    check_twix_type(io)
+    header_sections,acquisitions = load_twix_vd(io, header_only, acquisition_filter,
+                                                meas_selector)
+    # For now parse the MeasYaps section as it's is the easiest to parse and
+    # contains parameters relevant to downstream interpretation by the ICE
+    # program (...I think?)
+    @debug "Header section names" keys(header_sections)
+    metadata = parse_header_yaps(header_sections["MeasYaps"])
+    coils = RxCoilElementData[]
+    try
+        coils = parse_yaps_rx_coil_selection(metadata)
+    catch exc
+        @error "Could not parse coil metadata" exception=(exc,catch_backtrace())
     end
+    MRExperiment(metadata, coils, acquisitions)
 end
+
+load_twix(filename::String; kws...) = open(io->load_twix(io, kws...), filename)
 
 """
     dump_twix_headers(filename, dump_dir; meas_selector=last)
@@ -586,16 +589,54 @@ function meta_search(expt::MRExperiment, pattern::String)
     Dict(k=>v for (k,v) in expt.metadata if occursin(Regex(pattern,"i"), k))
 end
 
+
 #-------------------------------------------------------------------------------
+# Raw data extraction and light processing specific to Siemens twix format.
+#
+# Ideally the functions here don't do signal processing, but defer that to the
+# generic signal processing code instead.
+#
+
+function sampledata(expt, index; downsample=1)
+    acq = expt.data[index]
+    # The siemens sequence SVS_SE provides a few additional samples before and
+    # after the desired ones. They comment that this is mainly to allow some
+    # samples to be cut off after downsampling, (presumably to remove some of
+    # the ringing artifacts of doing this with a simple FFT).
+    cutpre  = acq.cutoff_pre
+    cutpost = acq.cutoff_post
+    data = acq.data
+    # Adjust time so that the t=0 occurs in the first retained sample
+    t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
+    t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsample)
+    coilsyms = if isempty(expt.coils)
+        [Symbol("C$i") for i in 1:length(acq.channel_info)]
+    else
+        # Match channels.
+        #
+        # This coil data appears to connect to the measurement data via the
+        # channel header channel_id field, when the relation
+        #
+        #     channel_id-1 == adc_channel_connected
+        #
+        # holds. Why the -1 is here is a mystery - perhaps the channel_id field
+        # uses 1-based indexing.
+        [Symbol(expt.coils[findfirst(e->e.adc_channel_connected-1 == c.channel_id, expt.coils)].element)
+         for c in acq.channel_info]
+    end
+    channel_ids = [Int(c.channel_id) for c in acq.channel_info]
+    AxisArray(z, Axis{:time}(t), Axis{:channel}(coilsyms))
+end
+
 
 """
-    mr_recognize(twix::MRExperiment)
+    mr_load(twix::MRExperiment)
 
 Recognizes spectro experiments in Siemens twix format, producing one of:
   * LCOSY
   * PRESS (TODO)
 """
-function mr_recognize(twix::MRExperiment)
+function mr_load(twix::MRExperiment)
     @debug "Recognizing twix input" twix
 
     meta = standard_metadata(twix)
@@ -608,13 +649,13 @@ function mr_recognize(twix::MRExperiment)
                             "%CustomerSeq%\\svs_lcosy-1"]
         if !(meta.sequence_name in release_versions)
             @warn """
-                  Sequence $(meta.sequence_name) looks like an L-COSY sequence,
-                  but is not one of the versions I recognize. (It might be a
-                  development version and you might get strange results!)
-                  """ twix meta
+                  Sequence `$(meta.sequence_name)` looks like an L-COSY sequence,
+                  but is not one of the versions I recognize. We will continue
+                  trying to read the data but if it's a development version of
+                  the sequence you might get strange results.
+                  """  meta.sequence_name twix
         end
 
-        frequency = twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"]*u"Hz"
         num_averages = twix.metadata["lAverages"]
 
         t1_inc_loop_idx = 0
@@ -622,11 +663,11 @@ function mr_recognize(twix::MRExperiment)
         if is_srcosy
             # UUUGH. Number of t1 increments must be inferred from repetitions
             # loop counter.
-            num_t1_incs = Int(maximum(d.loop_counters.repetition for d in twix.data))
+            nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data))
             t1_inc_loop_idx = loop_counter_index(:repetition)
             dt1         = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
         elseif is_svs_lcosy
-            num_t1_incs  = twix.metadata["sWipMemBlock.alFree[3]"]
+            nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
             t1_inc_loop_idx = loop_counter_index(:partition)
             # TODO - stash legacy_timing somewhere
             legacy_timing = get(twix.metadata, "sWipMemBlock.alFree[5]", 0) == 1
@@ -638,21 +679,26 @@ function mr_recognize(twix::MRExperiment)
             @warn "Found unexpected TE=$TE in L-COSY sequence"
         end
 
-        if length(twix.data) != num_t1_incs*num_averages
-            error("FIXME: Unrecognized cosy data - there must be some ref scans?")
-        end
+        has_refscans = get(twix.metadata, "sSpecPara.lAutoRefScanMode", 1) != 1
 
         ref_scans = Int[]
-        lcosy_scans = zeros(Int, num_t1_incs, num_averages)
+        lcosy_scans = zeros(Int, num_averages, nsamp_t1)
 
         for (i,acq) in enumerate(twix.data)
-            if acq.loop_counters.phase != 0
-                @warn "Ignoring ref scan..."
+            if !has_refscans && acq.loop_counters.phase != 0
+                @warn """
+                      Phase loop is nonzero but AutoRefScanMode is OFF.
+                      I don't know what to do with this acquisition!
+                      """
                 continue
+            end
+            is_refscan = has_refscans && acq.loop_counters.phase == 0
+            if is_refscan
+                push!(ref_scans, i)
             end
             t1_index = acq.loop_counters[t1_inc_loop_idx] + 1
             avg_index = acq.loop_counters.acquisition + 1
-            lcosy_scans[t1_index, avg_index] = i
+            lcosy_scans[avg_index, t1_index] = i
         end
 
         if any(lcosy_scans .== 0)
@@ -660,13 +706,8 @@ function mr_recognize(twix::MRExperiment)
                   findall(lcosy_scans .== 0))
         end
 
-        # FIXME: This is inefficient
-        num_t2_samps = size(sampledata(twix, 1), 1)
-
-        return LCOSY(frequency, dt1, num_t2_samps, meta, Dict(), ref_scans, lcosy_scans)
+        t1 = (0:nsamp_t1-1)*dt1
+        return LCOSY(t1, meta, ref_scans, lcosy_scans, twix)
     end
-
-    #@info "Found: " frequency num_t1_incs num_averages dt1
-
 end
 

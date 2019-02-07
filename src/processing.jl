@@ -34,51 +34,12 @@ function spectrum(time_samples::AxisArray)
     AxisArray(spec, Axis{:freq}(f))
 end
 
-"""
-    sampledata(expt, index; downsample=1)
-
-Return the acquired data from `expt` at a given acqusition `index`.  If
-`downsample>1`, the data will be subsampled by the given rate by truncating the
-tails of the signal in the Fourier spectral domain. This has the effect of
-removing noise by filtering away irrelevant high and low frequency components.
-"""
-function sampledata(expt, index; downsample=1)
-    acq = expt.data[index]
-    # The siemens sequence SVS_SE provides a few additional samples before and
-    # after the desired ones. They comment that this is mainly to allow some
-    # samples to be cut off after downsampling, (presumably to remove some of
-    # the ringing artifacts of doing this with a simple FFT).
-    cutpre  = acq.cutoff_pre
-    cutpost = acq.cutoff_post
-    data = acq.data
-    # Adjust time so that the t=0 occurs in the first retained sample
-    t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
-    t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsample)
-    coilsyms = if isempty(expt.coils)
-        [Symbol("C$i") for i in 1:length(acq.channel_info)]
-    else
-        # Match channels.
-        #
-        # This coil data appears to connect to the measurement data via the
-        # channel header channel_id field, when the relation
-        #
-        #     channel_id-1 == adc_channel_connected
-        #
-        # holds. Why the -1 is here is a mystery - perhaps the channel_id field
-        # uses 1-based indexing.
-        [Symbol(expt.coils[findfirst(e->e.adc_channel_connected-1 == c.channel_id, expt.coils)].element)
-         for c in acq.channel_info]
-    end
-    channel_ids = [Int(c.channel_id) for c in acq.channel_info]
-    AxisArray(z, Axis{:time}(t), Axis{:channel}(coilsyms))
-end
-
 # Internal function for downsampling and truncating of acqusition data
 function downsample_and_truncate(t, z, cutpre, cutpost, downsample)
     if downsample > 1
         # Do downsampling if requested, via naive Fourier filtering with square
         # window.  This appears to be the way Siemens implement this as well.
-        # It's a very spectrum-focussed way to do things and is a bit of an
+        # It's a very spectrum-focused way to do things and is a bit of an
         # abuse in the time domain.
         #
         # TODO: Do something useful if it's not a whole number of samples,

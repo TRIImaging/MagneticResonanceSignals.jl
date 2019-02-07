@@ -19,7 +19,19 @@
     @test t[2:end-1] == TriMRS.downsample_and_truncate(t, z, 1, 1, 1)[1]
 end
 
-#=
-@testset "processing" begin
+@testset "lcosy" begin
+    lcosy = @test_logs (:warn,) mr_load("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+
+    signal = simple_averaging(lcosy)
+    @test size(signal) == (2048,1)
+    @test axisnames(signal) == (:time2, :time1)
+
+    signal = simple_averaging(lcosy, downsample=2)
+    @test size(signal) == (1024,1)
+    # This computation seems to be reproducible only to Float32 accuracy,
+    # presumably because the FFT for downsampling is done only in Float32
+    # precision, and possibly because the FFTW planner doesn't always choose
+    # the same method? TODO: investigate this more...
+    @test signal[1,1] ≈ 5.933082399656147e-6 + 3.965691464605835e-6im rtol=2*eps(Float32)
 end
-=#
+

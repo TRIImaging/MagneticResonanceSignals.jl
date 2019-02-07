@@ -7,35 +7,19 @@ using AxisArrays
 
 # TODO: Move the signal processing parts (at least!) into src!
 function twix_to_felix(twixname, felixname)
-    twix = load_twix(twixname)
-    @info "Opened twix file" twixname twix
+    spectro = mr_load(twixname)
+    @info "Opened data file" twixname spectro
 
-    frequency = twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"]*u"Hz"
+    signal = simple_averaging(spectro, downsample=2)
 
-    num_t1_incs  = twix.metadata["sWipMemBlock.alFree[3]"]
-    num_averages = twix.metadata["lAverages"]
-    dt1          = twix.metadata["sWipMemBlock.adFree[1]"]*1e-3u"s"
-
-    combiner = pca_channel_combiner(twix.data)
-    t2_ax = AxisArrays.axes(sampledata(twix,1, downsample=2), Axis{:time})
-    t1_val = (0:num_t1_incs-1)*dt1
-    nsamps = length(t2_ax)
-    signal = AxisArray(zeros(ComplexF64, nsamps, num_t1_incs),
-                       Axis{:time2}(t2_ax.val), Axis{:time1}(t1_val))
-    for i=1:num_t1_incs
-        scans_for_avg = (i-1)*num_averages .+ (1:num_averages)
-        # FIXME: Remove this conj?
-        fid = conj.(mean(combiner.(sampledata.(Ref(twix), scans_for_avg))))
-        signal[:,i] = fid
-    end
-
-    f1_bandwidth = 1.0/dt1
-    f2_bandwidth = 1.0/step(t2_ax.val)
+    # Extract some metadata required by the felix format
+    frequency = standard_metadata(spectro).frequency
+    f1_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time1}).val)
+    f2_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time2}).val)
 
     save_felix(felixname, signal; bandwidth=(f2_bandwidth, f1_bandwidth), frequency=frequency);
 
     @info "Wrote to Felix file $felixname"
-
     signal
 end
 

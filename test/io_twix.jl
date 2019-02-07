@@ -13,6 +13,7 @@
           Sequence File Name = %CustomerSeq%\\svs_lcosy
           Software Version   = N4_VE11C_LATEST_20160120
           Reference Date     = 2018-11-27T12:22:52
+          Frequency          = 123255189 Hz
           Coils              = ["HeadNeck_64"]
         Acquisition summary:
           Number   = 1

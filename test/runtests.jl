@@ -9,9 +9,11 @@ getaxis(samples, name) = AxisArrays.axes(samples, Axis{name}).val
 
 @testset "TriMRS" begin
 
-include("io_twix.jl")
-include("io_felix.jl")
+include("mr_load.jl")
 include("processing.jl")
 include("windows.jl")
+
+include("io_twix.jl")
+include("io_felix.jl")
 
 end
