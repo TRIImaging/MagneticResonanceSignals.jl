@@ -1,22 +1,24 @@
 # Misc data processing functionality
 
 """
-    zeropad(fid, pad)
+    zeropad(fid, axis, pad)
 
 Zero pad an FID for Fourier interpolation
 """
-function zeropad(fid, pad)
-    pad == 1 ? fid : [fid; zeros(length(fid)*(pad-1))]
-end
-
-function zeropad(fid::AxisArray, pad)
+function zeropad(signal::AxisArray, axis=Axis{:time}, pad=2)
     if pad == 1
-        return fid
+        return signal
     else
-        padded = [fid; zeros(length(fid)*(pad-1))]
-        t = AxisArrays.axes(fid, Axis{:time}).val
-        t2 = first(t) .+ (0:length(padded)-1)*step(t)
-        AxisArray(padded, Axis{:time}(t2))
+        dim = axisdim(signal, axis)
+        padsize = [size(signal)...]
+        padsize[dim] *= (pad-1)
+        padded = cat(signal, zeros(padsize...), dims=dim)
+        t = AxisArrays.axes(signal, axis).val
+        tnew = first(t) .+ (0:size(padded,dim)-1)*step(t)
+        newaxes = [AxisArrays.axes(signal)...]
+        newaxes[dim] = axis(tnew)
+        @info "asdf" size(padded) size.(newaxes)
+        AxisArray(padded, newaxes...)
     end
 end
 

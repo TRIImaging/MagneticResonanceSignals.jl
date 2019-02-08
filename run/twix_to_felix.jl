@@ -17,7 +17,7 @@ function twix_to_felix(twixname, felixname)
     f1_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time1}).val)
     f2_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time2}).val)
 
-    save_felix(felixname, signal; bandwidth=(f2_bandwidth, f1_bandwidth), frequency=frequency);
+    save_felix(felixname, signal; bandwidth=(f2_bandwidth, f1_bandwidth), frequency=frequency)
 
     @info "Wrote to Felix file $felixname"
     signal
