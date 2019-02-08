@@ -1,3 +1,6 @@
+using Logging
+global_logger(ConsoleLogger(IOContext(stderr, :compact=>false, :limit=>false), show_limited=false))
+
 @testset "Spectral downsampling" begin
     # Test Fourier downsampling and signal truncation which is implemented to
     # be compatible with the Siemens way of doing this.
@@ -19,12 +22,17 @@
     @test t[2:end-1] == TriMRS.downsample_and_truncate(t, z, 1, 1, 1)[1]
 end
 
+@testset "coil_combination" begin
+    # TODO!!
+end
+
 @testset "lcosy" begin
     lcosy = @test_logs (:warn,) mr_load("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
 
     signal = simple_averaging(lcosy)
     @test size(signal) == (2048,1)
     @test axisnames(signal) == (:time2, :time1)
+    @test signal[1,1] ≈ 7.739802246281513e-7 + 3.6793923139925225e-6im rtol=2*eps(Float64)
 
     signal = simple_averaging(lcosy, downsample=2)
     @test size(signal) == (1024,1)

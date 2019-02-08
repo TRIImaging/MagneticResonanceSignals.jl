@@ -73,29 +73,19 @@ function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing,
         # we could do something better here...
         signal_range = 1:min(100, size(acqs[1].data,1))
     end
-    signal = vcat([a.data[signal_range,channels] for a in acqs]...)
+    signal = ComplexF64.(vcat([a.data[signal_range,channels] for a in acqs]...))
 
     # Compute PCA via the correlation matrix
-    evals,evecs = if VERSION < v"0.7"
-        eig(signal'*signal)
-    else
-        es = eigen(signal'*signal)
-        es.values,es.vectors
-    end
+    eig = eigen(Hermitian(signal'*signal))
     # Weights arise from the first principle component
-    pc1_index = argmax(evals)
-    weights = evecs[:,pc1_index]
+    pc1_index = argmax(eig.values)
+    weights = eig.vectors[:,pc1_index]
 
     # TODO:
     # * What's the most appropriate normalization for the weights?
     # * Is there any sensible phase factor we should add here?
-    ChannelCombiner((1 ./ sum(abs.(weights))) .* weights, channels)
+    ChannelCombiner((1 ./ sum(abs, weights)) .* weights, channels)
 end
-
-
-# Following would be handy, but how do we figure out which acquisitions relate
-# to the channel combination we're interested in?
-# pca_channel_combiner(expt::MRExperiment; kws...) = pca_channel_combiner(expt.data, kws...)
 
 
 ###
