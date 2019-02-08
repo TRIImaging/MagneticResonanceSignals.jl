@@ -21,17 +21,22 @@ function zeropad(fid::AxisArray, pad)
 end
 
 """
-    spectrum(time_samples)
+    spectrum(signal)
 
 Compute the spectrum from time domain signal via Fourier Transform.
-
-TODO: Extend this to N dimensions of time!
 """
-function spectrum(time_samples::AxisArray)
-    dim = axisdim(time_samples, Axis{:time})
-    spec = fftshift(fft(time_samples.data, dim), dim)
-    f = frequency_axis(time_samples)
-    AxisArray(spec, Axis{:freq}(f))
+function spectrum(signal::AxisArray)
+    names = axisnames(signal)
+    if names == (:time,)
+        spec = fftshift(fft(signal.data))
+        f = frequency_axis(signal)
+        AxisArray(spec, Axis{:freq}(f))
+    elseif names == (:time2, :time1)
+        spec = fftshift(fft(signal.data))
+        f1 = frequency_axis(signal, Axis{:time1})
+        f2 = frequency_axis(signal, Axis{:time2})
+        AxisArray(spec, Axis{:freq2}(f2), Axis{:freq1}(f1))
+    end
 end
 
 # Internal function for downsampling and truncating of acqusition data

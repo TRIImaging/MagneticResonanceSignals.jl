@@ -37,8 +37,8 @@ end
 Apply `windowfunc` over the dimensionless time range `(0:tlen-1)/tlen)` of
 `fid`.
 """
-function apply_window!(fid::AxisArray, windowfunc)
-    w = _makewin(fid, Axis{:time}, windowfunc)
+function apply_window!(fid::AxisArray, axis, windowfunc)
+    w = _makewin(fid, axis, windowfunc)
     fid .*= w
     fid
 end
@@ -53,8 +53,10 @@ from the Felix NMR software.
 If the time dimension is tagged with something other than Axis{:time}, this may
 be specified with the optional `axis` parameter.
 """
-function sinebell(fid, axis=Axis{:time}; skew, n)
-    apply_window!(copy(fid), (t)->_sinebell(t, skew, n))
+sinebell(fid, axis=Axis{:time}; skew, n) = sinebell!(copy(fid), axis; skew=skew, n=n)
+
+function sinebell!(fid, axis=Axis{:time}; skew, n)
+    apply_window!(fid, axis, (t)->_sinebell(t, skew, n))
 end
 
 function _sinebell(t, skew, n)

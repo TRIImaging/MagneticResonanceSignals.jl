@@ -59,8 +59,8 @@ function frequency_axis_ppm(a::MRAxis)
     hertz_to_ppm.(Ref(a), frequency_axis(a))
 end
 
-function frequency_axis(a::AxisArray)
-    t = AxisArrays.axes(a, Axis{:time}).val
+function frequency_axis(a::AxisArray, axis=Axis{:time})
+    t = AxisArrays.axes(a, axis).val
     n = length(t)
     zero_offset = floor(Int, n/2)
     (-zero_offset:n-1-zero_offset) * uconvert.(u"Hz", one(eltype(t))/(n*step(t)))
