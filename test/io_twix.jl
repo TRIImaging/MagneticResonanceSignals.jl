@@ -23,7 +23,7 @@ end
 
 @testset "data extraction" begin
     twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
-    samples = sampledata(twix, 1, downsample=1)
+    samples = sampledata(twix, 1) # downsample==1
     @test size(samples) == (2048,34)
     @test first(getaxis(samples, :time)) == 0u"μs"
     @test step(getaxis(samples, :time)) == 500u"μs"
@@ -34,6 +34,11 @@ end
         :H44,:H67,:H66,:H52,:H51,:H46,:H47,:H54,:H53,:H65,:H64,:H71,:H55,:H33,:H32,
         :H61,:H60,:H69,:H68
     ]
+    # Test values of first and last time samples of channel data
+    @test samples[1,1]     == -1.3986137f-6 + 1.442153f-6im
+    @test samples[1,end]   ==  2.022367f-6  - 5.987473f-6im
+    @test samples[end,1]   == -1.3408717f-6 - 3.1664968f-7im
+    @test samples[end,end] == -3.306195f-8  - 7.7229924f-7im
 
     # With downsampling
     samples = sampledata(twix, 1, downsample=2)
