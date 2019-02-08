@@ -30,7 +30,7 @@
     @test fheader[141] == bandwidth[2]/u"Hz"
 
     @test words[3+256] == size(data,1)*2
-    @test reinterpret(ComplexF32, words[3+256 .+ (1:6)]) == data[:,1]
+    @test reinterpret(ComplexF32, words[3+256 .+ (1:6)]) == conj.(data[:,1])
     @test words[3+256 + 6 + 1] == size(data,1)*2
-    @test reinterpret(ComplexF32, words[3+256 + 6 + 1 .+ (1:6)]) == data[:,2]
+    @test reinterpret(ComplexF32, words[3+256 + 6 + 1 .+ (1:6)]) == conj.(data[:,2])
 end

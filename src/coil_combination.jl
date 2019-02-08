@@ -37,21 +37,15 @@ combine_channels(combiner::ChannelCombiner, data::AbstractMatrix) =
 combine_channels(combiner::ChannelCombiner, acq::Acquisition) =
     acq.data[:,combiner.channels] * combiner.weights
 
-"""
-    combine_channels(acq::Acquisition)
-
-Combine channels, deducing channel weights from the data itself
-"""
-combine_channels(acq::Acquisition) = pca_channel_combiner([acq])(acq)
-
 
 """
-    pca_channel_combiner(acquisitions::Vector{Acquisition}; signal_range=nothing, channels=:)
+    pca_channel_combiner(signals; signal_range=nothing, channels=:)
 
 Compute channel combination object using PCA, assuming that each acquisition in
-`acquisitions` has the same relative geometry of sample and coils.  We use the
-first few samples of all acquisition data together in the same calculation to
-get a good estimate of the correct channel weights.
+`signals` has the same relative geometry of sample and coils.  `signals[i]` is
+assumed to be an array of shape `num_samp × num_chan`.  We use the first few
+samples of all acquisition data together in the same calculation to get a good
+estimate of the correct channel weights.
 
 These assumptions should be valid to assess the relative coil SNR for
 spectroscopy of a single voxel; for other experiments you may want to use a
@@ -61,8 +55,7 @@ different method, or restrict calculation of weights to a different
 `channels` can be set to a index-like object in order to combine only a subset
 of channels.
 """
-function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing,
-                              channels=:)
+function pca_channel_combiner(signals; signal_range=nothing, channels=:)
     # Select set of time series data from multiple acquisitions, containing
     # mostly signal rather than noise.
     if signal_range == nothing
@@ -71,9 +64,9 @@ function pca_channel_combiner(acqs::Vector{Acquisition}; signal_range=nothing,
         #
         # Using the start of the signal will fail if it's an echo, so arguably
         # we could do something better here...
-        signal_range = 1:min(100, size(acqs[1].data,1))
+        signal_range = 1:100
     end
-    signal = ComplexF64.(vcat([a.data[signal_range,channels] for a in acqs]...))
+    signal = ComplexF64.(vcat([a[signal_range,channels] for a in signals]...))
 
     # Compute PCA via the correlation matrix
     eig = eigen(Hermitian(signal'*signal))

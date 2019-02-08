@@ -39,10 +39,10 @@ function simple_averaging(lcosy::LCOSY; downsample=1)
     # probably water-suppressed)
     combiner_inds = lcosy.ref_scans
     if isempty(combiner_inds)
+        # TODO: Put this logic in pca_channel_combiner ?
         combiner_inds = vec(lcosy.lcosy_scans)
     end
-    # FIXME: Don't use .data here!!  Clean this up...
-    combiner = pca_channel_combiner(acqs.data[combiner_inds])
+    combiner = pca_channel_combiner(sampledata(acqs, i) for i in combiner_inds)
 
     # Hmm. Calling sampledata to initialize this is kinda ugly...
     fid1 = combiner(sampledata(acqs, lcosy.lcosy_scans[1,1], downsample=downsample))
@@ -54,8 +54,7 @@ function simple_averaging(lcosy::LCOSY; downsample=1)
                        Axis{:time2}(t2), Axis{:time1}(lcosy.t1))
     for i=1:nsamp_t1
         scans_for_avg = lcosy.lcosy_scans[:,i]
-        # FIXME: Remove this conj?
-        fid = conj.(mean(combiner.(sampledata.(Ref(acqs), scans_for_avg, downsample=downsample))))
+        fid = mean(combiner.(sampledata.(Ref(acqs), scans_for_avg, downsample=downsample)))
         signal[:,i] = fid
     end
 

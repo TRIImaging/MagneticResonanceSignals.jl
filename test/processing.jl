@@ -1,6 +1,3 @@
-using Logging
-global_logger(ConsoleLogger(IOContext(stderr, :compact=>false, :limit=>false), show_limited=false))
-
 @testset "Spectral downsampling" begin
     # Test Fourier downsampling and signal truncation which is implemented to
     # be compatible with the Siemens way of doing this.
@@ -32,14 +29,16 @@ end
     signal = simple_averaging(lcosy)
     @test size(signal) == (2048,1)
     @test axisnames(signal) == (:time2, :time1)
-    @test signal[1,1] ≈ 7.739802246281513e-7 + 3.6793923139925225e-6im rtol=2*eps(Float64)
+
+    # NB: The value of signal[1,1] here is very sensitive to the detail of how
+    # channel combination is done.
+    #
+    # If this test breaks, check channel combination first.
+    @test signal[1,1] ≈ 7.738674959726887e-7 - 3.6804266388552964e-6im
 
     signal = simple_averaging(lcosy, downsample=2)
     @test size(signal) == (1024,1)
-    # This computation seems to be reproducible only to Float32 accuracy,
-    # presumably because the FFT for downsampling is done only in Float32
-    # precision, and possibly because the FFTW planner doesn't always choose
-    # the same method? TODO: investigate this more...
-    @test signal[1,1] ≈ 5.933082399656147e-6 + 3.965691464605835e-6im rtol=2*eps(Float32)
+    # See comment above regarding channel combination.
+    @test signal[1,1] ≈ 5.9181230855718945e-6 - 3.929549012629214e-6im
 end
 

@@ -180,7 +180,11 @@ end
 
 function write_felix_data(io, data)
     for i=1:size(data,2)
-        fid = ComplexF32.(data[:,i])
+        # We add a `conj` here because Felix seems to expect positive
+        # frequencies to be negative offsets from the spectrometer reference.
+        # (TODO: Maybe this is the standard convention for NMR data? It seems
+        # confusing.)
+        fid = conj.(ComplexF32.(data[:,i]))
         # Felix format counts data in 32-bit words
         nwords = 2*length(fid)
         write(io, convert(Int32, nwords))

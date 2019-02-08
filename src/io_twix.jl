@@ -463,18 +463,10 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
                             read(iob, UInt32) # skip
             push!(channel_info, ChannelHeader(meas_uid, scan_counter, sequence_time, channel_id))
             raw_data = read!(iob, Vector{ComplexF32}(undef,num_samples))
-            # NB: The quadrature convetion used in twix is the opposite of what
-            # we'd like for spectro: We want the positive frequencies after a
-            # simple fft to correspond to a positive offset from the
-            # spectrometer reference frequency. But in twix they are negative
-            # so directly doing an fft of the raw data would flip the frequency
-            # axis.  We add a conj to standardize the convention.
-            #
-            # TODO: Perhaps should reconsider this, to preserve the original
-            # data as much as possible? Consider starting to version TriMRS if
-            # this is to be changed. Need a better interface to the raw data so
-            # we have flexibility in storing the underlying data.
-            data[:,channel_index] .= conj.(raw_data)
+            # NB: The quadrature convetion used in twix is such that the
+            # positive frequencies after a simple fft to correspond to a
+            # *negative* offset from the spectrometer reference frequency.
+            data[:,channel_index] .= raw_data
         end
         acq = Acquisition(
             meas_uid, scan_counter, time_stamp, pmu_time_stamp,
@@ -609,6 +601,11 @@ function sampledata(expt, index; downsample=1)
     # Adjust time so that the t=0 occurs in the first retained sample
     t = ((0:size(data,1)-1) .- cutpre)*dwell_time(expt)
     t,z = downsample_and_truncate(t, data, cutpre, cutpost, downsample)
+    # We want the positive frequencies after a simple fft to correspond to a
+    # positive offset from the spectrometer reference frequency. But in twix
+    # they are negative so directly doing an fft of the raw data would flip the
+    # frequency axis.  We add a conj to standardize the convention.
+    z = conj.(z)
     coilsyms = if isempty(expt.coils)
         [Symbol("C$i") for i in 1:length(acq.channel_info)]
     else
