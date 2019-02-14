@@ -38,7 +38,14 @@ export
     meta_search,
     standard_metadata,
     scanner_time,
-    mr_load
+    mr_load,
+    sampledata
+
+# IO
+export load_rda,
+    save_rda,
+    load_twix,
+    save_felix
 
 # Axes
 # TODO: Deprecate / remove all this in favour of AxisArray
@@ -50,27 +57,26 @@ export
     frequency_axis,
     frequency_axis_ppm
 
-# IO
-export load_rda,
-    save_rda,
-    load_twix,
-    save_felix
-
-# Data processing
+# Low level signal processing
 export
-    MRWindows,
-    sampledata,
-    zeropad,
+    # Channel combination
     pca_channel_combiner,
     combine_channels,
-    spectrum,
-    simple_averaging
+    # Spectral windows
+    zeropad,
+    apply_window, apply_window!,
+    sinebell
+
+# High level signal processing
+export
+    # Averaging of repeats
+    simple_averaging,
+    # Fourier transform
+    spectrum
 
 # Plotting
 export
     felix_colors
-
-using .MRWindows
 
 @deprecate load_twix_raw load_twix
 

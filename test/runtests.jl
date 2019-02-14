@@ -1,5 +1,4 @@
 using TriMRS
-using TriMRS.MRWindows
 using AxisArrays
 using Test
 using Unitful

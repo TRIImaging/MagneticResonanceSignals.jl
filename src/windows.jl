@@ -1,5 +1,35 @@
+_axisdim(a, ax) = axisdim(a, ax)
+_axisdim(a, ax::Integer) = ax
+
+function _makewin(fid, axis, windowfunc)
+    dim = _axisdim(fid, axis)
+    dimlen = size(fid, dim)
+    w = windowfunc.((0:dimlen-1)/dimlen)
+    # Reshape to broadcast `w` only along time dimension
+    windowshape = ntuple(i->i==dim ? dimlen : 1, ndims(fid))
+    reshape(w, windowshape...)
+end
+
 """
-A module containing some unusual windowing functions commonly used in MR work.
+Apply `windowfunc` over the dimensionless time range `(0:tlen-1)/tlen)` of
+`fid` along dimension `axis` which can be an `Axis` or `Integer`.
+
+See also `apply_window`.
+"""
+function apply_window!(fid::AxisArray, axis, windowfunc)
+    w = _makewin(fid, axis, windowfunc)
+    fid .*= w
+    fid
+end
+
+"""
+    apply_window(signal, axis1=>win1, axis2=>win2, ...)
+
+Apply window functions `win1` along `axis1`, `win2` along `axis2`, etc.  The
+windows should be functions over the dimensionless time domain `0..1`; the axes
+should be of type `AxisArrays.Axis`.
+
+# Background
 
 For the purposes of spectroscopy, the MR signal is generally an oscillating
 decaying signal in the time domain, with different metabolites having different
@@ -18,51 +48,26 @@ fitting method.
 Note that these MR-specific reasons are subtly different - and apply in addition
 to - the generic signal processing reasons for time domain windowing.
 """
-module MRWindows
-
-using AxisArrays
-
-export sinebell
-
-function _makewin(fid, axis, windowfunc)
-    dim = axisdim(fid, axis)
-    t = AxisArrays.axes(fid, axis).val
-    w = windowfunc.((0:length(t)-1)/length(t))
-    # Reshape to broadcast `w` only along time dimension
-    windowshape = ntuple(i->i==dim ? length(t) : 1, ndims(fid))
-    reshape(w, windowshape...)
-end
-
-"""
-Apply `windowfunc` over the dimensionless time range `(0:tlen-1)/tlen)` of
-`fid`.
-"""
-function apply_window!(fid::AxisArray, axis, windowfunc)
-    w = _makewin(fid, axis, windowfunc)
-    fid .*= w
+function apply_window(fid::AxisArray, windows::Pair...)
+    fid = copy(fid)
+    axis,winfunc = windows[1]
+    for (axis,winfunc) in windows
+        apply_window!(fid, axis, winfunc)
+    end
     fid
 end
 
 """
-    sinebell(fid, axis=Axis{:time}; skew, n)
+    sinebell(t; skew=1, pow=1)
 
-Apply a skewed sine bell window over the full time range of `fid`. This should
-be equivalent to the skewed sinebell window with zero phase shift parameter
-from the Felix NMR software.
+The sinebell window on the dimensionless time range `t ∈ 0..1`.
 
-If the time dimension is tagged with something other than Axis{:time}, this may
-be specified with the optional `axis` parameter.
+Use `pow=2` for sinebell squared. Setting the `skew` parameter to something
+other than the default of `1.0` gives a skewed sinebell window, as in Felix NMR.
 """
-sinebell(fid, axis=Axis{:time}; skew, n) = sinebell!(copy(fid), axis; skew=skew, n=n)
-
-function sinebell!(fid, axis=Axis{:time}; skew, n)
-    apply_window!(fid, axis, (t)->_sinebell(t, skew, n))
-end
-
-function _sinebell(t, skew, n)
+function sinebell(t::Number; skew=1.0, pow=1.0)
     # Guess at the Felix parameterization via inspection of the window in the
     # UI; seen via "Open and Process"->"Window"->"Real time"
-    sin(pi*t^skew)^n
+    sin(pi*t^skew)^pow
 end
 
-end

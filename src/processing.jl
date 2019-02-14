@@ -17,13 +17,12 @@ function zeropad(signal::AxisArray, axis=Axis{:time}, pad=2)
         tnew = first(t) .+ (0:size(padded,dim)-1)*step(t)
         newaxes = [AxisArrays.axes(signal)...]
         newaxes[dim] = axis(tnew)
-        @info "asdf" size(padded) size.(newaxes)
         AxisArray(padded, newaxes...)
     end
 end
 
 """
-    spectrum(signal)
+    spectrum(signal::AxisArray)
 
 Compute the spectrum from time domain signal via Fourier Transform.
 """
