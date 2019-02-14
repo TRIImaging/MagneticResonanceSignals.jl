@@ -660,9 +660,9 @@ function mr_load(twix::MRExperiment)
         if is_srcosy
             # UUUGH. Number of t1 increments must be inferred from repetitions
             # loop counter.
-            nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data))
+            nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data)) + 1
             t1_inc_loop_idx = loop_counter_index(:repetition)
-            dt1         = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
+            dt1             = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
         elseif is_svs_lcosy
             nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
             t1_inc_loop_idx = loop_counter_index(:partition)
