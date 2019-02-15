@@ -552,8 +552,8 @@ function parse_yaps_rx_coil_selection(yaps)
                 yaps[prefix*".asList[$i].sCoilProperties.eCoilType"],
                 yaps[prefix*".asList[$i].lRxChannelConnected"],
                 yaps[prefix*".asList[$i].lADCChannelConnected"],
-                yaps[prefix*".asList[$i].lMuxChannelConnected"],
-                yaps[prefix*".asList[$i].uiInsertionTime"],
+                get(yaps, prefix*".asList[$i].lMuxChannelConnected", -1),
+                get(yaps, prefix*".asList[$i].uiInsertionTime", -1),
                 yaps[prefix*".asList[$i].lElementSelected"],
            ))
         catch exc
@@ -562,7 +562,7 @@ function parse_yaps_rx_coil_selection(yaps)
             # accurate estimation of the number of coils (is it an upper bound!?)
             # May be common, in which case we should downgrade this to a debug message.
             @warn "Could not find some metadata for coil $i" #=
-                =# exception=(exc,catch_backtrace())
+                =# exc.key
         end
     end
     coils
@@ -640,9 +640,11 @@ function mr_load(twix::MRExperiment)
     @debug "Found standard metadata" meta
 
     is_svs_lcosy = occursin("svs_lcosy", meta.sequence_name)
-    is_srcosy    = occursin("srcosy", meta.sequence_name)
+    is_srcosy    = occursin("srcosy", meta.sequence_name) ||
+                   occursin("sr_cosy", meta.sequence_name)
     if is_svs_lcosy || is_srcosy
         release_versions = ["%CustomerSeq%\\srcosy",
+                            "%CustomerSeq%\\sr_cosy",
                             "%CustomerSeq%\\svs_lcosy-1"]
         if !(meta.sequence_name in release_versions)
             @warn """
@@ -660,8 +662,8 @@ function mr_load(twix::MRExperiment)
         if is_srcosy
             # UUUGH. Number of t1 increments must be inferred from repetitions
             # loop counter.
-            nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data)) + 1
             t1_inc_loop_idx = loop_counter_index(:repetition)
+            nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data)) + 1
             dt1             = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
         elseif is_svs_lcosy
             nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
@@ -681,6 +683,7 @@ function mr_load(twix::MRExperiment)
         ref_scans = Int[]
         lcosy_scans = zeros(Int, num_averages, nsamp_t1)
 
+        did_loop_warning = false
         for (i,acq) in enumerate(twix.data)
             if !has_refscans && acq.loop_counters.phase != 0
                 @warn """
@@ -695,16 +698,33 @@ function mr_load(twix::MRExperiment)
             end
             t1_index = acq.loop_counters[t1_inc_loop_idx] + 1
             avg_index = acq.loop_counters.acquisition + 1
+            if avg_index == 1 && acq.loop_counters.set > 0
+                avg_index = acq.loop_counters.set + 1
+                if !did_loop_warning
+                    # There's two possibilities here.
+                    # 1) VD13A and older data have a different ABI for twix,
+                    #    with the loop order switched.
+                    # 2) `set` was used for spectro averaging in the older software.
+                    # TODO: Figure out which one of these it was, and remove this warning!
+                    @warn """
+                          We're guessing that the averaging loop is using the
+                          `set` loop counter for this twix version.
+                          """ metadata=meta
+                    did_loop_warning = true
+                end
+            end
             lcosy_scans[avg_index, t1_index] = i
         end
 
         if any(lcosy_scans .== 0)
-            error("Missing increments or averages in L-COSY scan:\n"*
-                  findall(lcosy_scans .== 0))
+            nmissing = length(findall(lcosy_scans .== 0))
+            error("Missing increments or averages in L-COSY scan ($nmissing of $(length(lcosy_scans)))")
         end
 
         t1 = (0:nsamp_t1-1)*dt1
         return LCOSY(t1, meta, ref_scans, lcosy_scans, twix)
     end
+
+    error("Siemens raw data with sequence \"$(meta.sequence_name)\" is unrecognized")
 end
 
