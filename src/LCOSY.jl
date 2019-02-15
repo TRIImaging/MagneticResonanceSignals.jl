@@ -62,3 +62,33 @@ function simple_averaging(lcosy::LCOSY; downsample=1)
 end
 
 
+"""
+    spectrum(lcosy::LCOSY,
+             win1=t->sinebell(t, pow=2),
+             win2=t->sinebell(t, skew=0.3, pow=2),
+             t1pad=4)
+
+Compute spectrum from lcosy data with "standard" L-COSY processing parameters
+as have traditionally been used by Mountford et. al.
+   * Simple averaging
+   * T2: skewed sine bell squared window, skew=0.3
+   * T1: Sine bell squared window, 4x zero padded
+"""
+function spectrum(lcosy::LCOSY;
+                  win1=t->sinebell(t, pow=2),
+                  win2=t->sinebell(t, skew=0.3, pow=2),
+                  t1pad=4)
+    signal = simple_averaging(lcosy)
+    # Apply sine bell squared windows to signal, as in TRI Felix workflow
+    apply_window!(signal, Axis{:time2}, win2)
+    apply_window!(signal, Axis{:time1}, win1)
+    signal = zeropad(signal, Axis{:time1}, t1pad)
+    spec = spectrum(signal)
+
+    # TODO: Flip freq1 axis.
+    # TODO: Figure out why we need this...
+    #freq1 = AxisArrays.axes(s, Axis{:freq1})
+    #freq2 = AxisArrays.axes(s, Axis{:freq2})
+
+    spec
+end

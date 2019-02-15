@@ -21,17 +21,10 @@ convert it into a spectrum and view that spectrum:
 using TriMRS, AxisArrays, Unitful
 
 cosy = mr_load("meas_MID00417_FID85233_svs_lcosy.dat")
-signal = simple_averaging(cosy)
 
-# Apply sine bell windows to signal, as in TRI Felix workflow
-MRWindows.sinebell!(signal, Axis{:time2}, skew=0.3, n=2)
-MRWindows.sinebell!(signal, Axis{:time1}, skew=1, n=2)
-
-# Add zero padding here
-signal = zeropad(signal, Axis{:time1}, 4)
-
-# Compute spectrum from time domain signal
-spec = spectrum(signal)
+# High level interface: this does the whole spectral conversion for you using
+# simple averaging.  You can set the windows here if you like.
+spec = spectrum(cosy)
 
 # Plot the absolute value of the spectrum
 using Plots
@@ -39,9 +32,12 @@ pyplot()
 getaxis(s, n) = ustrip.(uconvert.(u"Hz", AxisArrays.axes(s, Axis{n}).val))
 f1 = getaxis(spec, :freq1)
 f2 = getaxis(spec, :freq2)
-contour(f1, f2, log.(abs.(spec)); levels=-10:0.3:-3,
+contour(f2, reverse(f1), Matrix(transpose(log.(abs.(spec)))); levels=-10:0.3:-3,
         seriescolor=cgrad(felix_colors), clims=(-10,-3),
-        background_color=:black)
+        background_color=:black, aspectratio=1.0,
+        xlabel="F2 (Hz)", ylabel="F1 (Hz)",
+        xticks=-1000:100:1000, yticks=-1000:100:1000,
+        xlim=[-200,550], ylim=[-200,550])
 ```
 
 Here's an example of how you can convert to Felix format:
@@ -58,6 +54,23 @@ f1_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time1}).val)
 f2_bandwidth = 1.0/step(AxisArrays.axes(signal, Axis{:time2}).val)
 
 save_felix("felix_input.dat", signal; bandwidth=(f2_bandwidth, f1_bandwidth), frequency=frequency)
+```
+
+Here's an example of how to do the steps in `spectrum(cosy)`, with the
+averaging and windowing written out explicitly.
+
+```julia
+signal = simple_averaging(cosy)
+
+# Apply sine bell squared windows to signal, as in TRI Felix workflow
+apply_window!(signal, Axis{:time2}, t->sinebell(t, pow=2, skew=0.3))
+apply_window!(signal, Axis{:time1}, t->sinebell(t, pow=2))
+
+# Add zero padding here
+signal = zeropad(signal, Axis{:time1}, 4)
+
+# Compute spectrum from time domain signal
+spec = spectrum(signal)
 ```
 
 ## Installation
