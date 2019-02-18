@@ -40,8 +40,8 @@ struct Acquisition
     # Measurement Data Header (MDH) section.
     meas_uid                    ::UInt32
     scan_counter                ::UInt32
-    time_stamp                  ::UInt32
-    pmu_time_stamp              ::UInt32
+    time_stamp                  ::UInt32  # Mars time stamp?
+    pmu_time_stamp              ::UInt32  # phase measurement unit time stamp (on Rx??)
     system_type                 ::UInt16
     # ptab?
     ptab_pos_delay              ::UInt16
@@ -66,16 +66,20 @@ struct Acquisition
     # raw data size from ADC
     num_samples                 ::UInt16
     num_channels                ::UInt16
+    # Hypercube indexing system for comms with reconstruction code
     loop_counters               ::LoopCounters
+    # Info about precise timing of digital samples
     cutoff_pre                  ::UInt16
     cutoff_post                 ::UInt16
     kspace_centre_column        ::UInt16
     coil_select                 ::UInt16
-    readout_offcentre           ::UInt32
+    readout_offcentre           ::Float32
     time_since_rf               ::UInt32
     kspace_centre_line_num      ::UInt16
     kspace_centre_partition_num ::UInt16
-    slice_position              ::SVector{7,Float32}
+    # 3D coordinage system
+    slice_position              ::SVector{3,Float32} # offset (saggital,coronal,transverse) ?
+    slice_rotation_quat         ::SVector{4,Float32}
     # per-acquisition sequence-dependent parameters as passed to ICE program.
     ice_program_params          ::SVector{24,UInt16}
     reserved_params             ::SVector{4,UInt16}
@@ -373,12 +377,22 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
 
         iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
 
-        meas_uid, scan_counter, time_stamp, pmu_time_stamp = read(iob, SVector{4,UInt32})
-        system_type, ptab_pos_delay = read(iob, SVector{2,UInt16})
-        ptab_pos_x, ptab_pos_y, ptab_pos_z, reserved = read(iob, SVector{4,UInt32})
+        meas_uid       = read(iob, UInt32)
+        scan_counter   = read(iob, UInt32)
+        time_stamp     = read(iob, UInt32)
+        pmu_time_stamp = read(iob, UInt32)
+
+        # NB: Following block is not in VB format data
+        system_type    = read(iob, UInt16)
+        ptab_pos_delay = read(iob, UInt16)
+        ptab_pos_x     = read(iob, UInt32)
+        ptab_pos_y     = read(iob, UInt32)
+        ptab_pos_z     = read(iob, UInt32)
+        reserved       = read(iob, UInt32)
 
         # more composite information
-        eval_info_mask      = read(iob, UInt64)
+        eval_info_mask = read(iob, UInt64)
+
         acq_end             = Bool((eval_info_mask      ) & 1)
         rt_feedback         = Bool((eval_info_mask >> 1 ) & 1)
         hp_feedback         = Bool((eval_info_mask >> 2 ) & 1)
@@ -413,7 +427,8 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         end
         =#
 
-        num_samples, num_channels = read(iob, SVector{2,UInt16})
+        num_samples   = read(iob, UInt16)
+        num_channels  = read(iob, UInt16)
         # TODO: Ordering of loop counters have changed between software versions!!
         # 
         # read_meas_dat_mdh_binary__alt.m Lists the ordering of the loop counters as
@@ -429,14 +444,21 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         cutoff_pre                  = read(iob, UInt16)
         cutoff_post                 = read(iob, UInt16)
         kspace_centre_column        = read(iob, UInt16)
-        coil_select                 = read(iob, UInt16)
-        readout_offcentre           = read(iob, UInt32)
+        coil_select                 = read(iob, UInt16)   # Dummy in VB ?
+        readout_offcentre           = read(iob, Float32)
         time_since_rf               = read(iob, UInt32)
         kspace_centre_line_num      = read(iob, UInt16)
         kspace_centre_partition_num = read(iob, UInt16)
-        slice_position              = read(iob, SVector{7,Float32})
+        # TWIX VB Would have following here instead of below; note different length too.
+        # ice_program_params          = read(iob, SVector{4,UInt16})
+        # reserved_params             = read(iob, SVector{4,UInt16})
+        slice_position              = read(iob, SVector{3,Float32})
+        slice_rotation_quat         = read(iob, SVector{4,Float32})
         ice_program_params          = read(iob, SVector{24,UInt16})
         reserved_params             = read(iob, SVector{4,UInt16})
+        # TWIX VB doesn't have these. Instead
+        # channel_id::UInt16
+        # ptab_pos_neg::UInt16
         application_counter         = read(iob, UInt16)
         application_mask            = read(iob, UInt16)
         crc                         = read(iob, UInt32)
@@ -477,8 +499,8 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             num_samples, num_channels, loop_counters,
             cutoff_pre, cutoff_post, kspace_centre_column, coil_select, readout_offcentre,
             time_since_rf, kspace_centre_line_num, kspace_centre_partition_num, slice_position,
-            ice_program_params, reserved_params, application_counter, application_mask,
-            channel_info, data)
+            slice_rotation_quat, ice_program_params, reserved_params, application_counter,
+            application_mask, channel_info, data)
         if acquisition_filter(acq)
             push!(acquisitions, acq)
         end
