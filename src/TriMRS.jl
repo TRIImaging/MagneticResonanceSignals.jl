@@ -1,6 +1,5 @@
 module TriMRS
 
-using MicroLogging
 using StaticArrays
 using DataStructures
 using AxisArrays
@@ -9,8 +8,7 @@ using Statistics
 using Unitful
 using FFTW
 
-using Compat
-using Compat.LinearAlgebra
+using LinearAlgebra
 
 # Plotting
 using RecipesBase

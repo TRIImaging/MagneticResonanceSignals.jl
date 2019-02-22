@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # Representation of raw acquisition data
 
-using Compat.Dates
+using Dates
 
 """
 Data stored in the header preceding each channel of a raw acquisition
@@ -321,7 +321,7 @@ end
 
 function read_zero_packed_string(io, N)
     data = read(io, N)
-    firstnull = Compat.findfirst(data .== 0)
+    firstnull = findfirst(data .== 0)
     strend = firstnull==nothing ? length(data) : firstnull-1
     String(data[1:strend])
 end
@@ -518,7 +518,7 @@ function parse_twix_header_sections(io)
     num_sec = read(io, UInt32)
     sections = Dict{String,String}()
     for sec_index = 1:num_sec
-        sec_name    = String(Compat.readuntil(io, '\0', keep=false))
+        sec_name    = String(readuntil(io, '\0', keep=false))
         sec_size    = read(io, UInt32)
         sec_content = read(io, sec_size)
         if sec_content[end] == 0
