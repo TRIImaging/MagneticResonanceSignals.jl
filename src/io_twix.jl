@@ -682,11 +682,28 @@ function mr_load(twix::MRExperiment)
         t1_inc_loop_idx = 0
 
         if is_srcosy
-            # UUUGH. Number of t1 increments must be inferred from repetitions
+            old_srcosy = occursin("sr_cosy", meta.sequence_name) ||
+                         occursin("N4_VD", meta.software_version)
+            # Uuugh. Number of t1 increments must be inferred from repetitions
             # loop counter.
             t1_inc_loop_idx = loop_counter_index(:repetition)
             nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data)) + 1
-            dt1             = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
+            dt1_key = "sWipMemBlock.adFree[1]"
+            if !haskey(twix.metadata, dt1_key)
+                # Guuuuh! It gets worse. It seems that likely that for this
+                # very old sr_cosy sequence data we have no `dt1` value in the
+                # WIP mem block. Probably it was just hardcoded so we will have
+                # to guess.
+                # TODO: Check this!!!
+                dt1 = 0.8u"ms"
+                #if !old_srcosy # TODO.
+                    @warn """
+                          No T1 increment found in twix metadata. We are guessing a value of `$dt1`.
+                          """ meta
+                #end
+            else
+                dt1 = twix.metadata[dt1_key]*u"ms"
+            end
         elseif is_svs_lcosy
             nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
             t1_inc_loop_idx = loop_counter_index(:partition)
