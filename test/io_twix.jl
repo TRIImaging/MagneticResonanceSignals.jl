@@ -21,6 +21,17 @@
         """
 end
 
+
+@testset "metadata parsing" begin
+    twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+    @test twix.metadata["tProtocolName"] == "svs_lcosy"
+    @test twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"] == 123255189
+    @test twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"] == 123255189
+    @test twix.metadata["DICOM.ManufacturersModelName"] == "Prisma"
+    @test twix.metadata["DICOM.DeviceSerialNumber"]     == "166042"
+end
+
+
 @testset "data extraction" begin
     twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
     samples = sampledata(twix, 1) # downsample==1
@@ -53,3 +64,5 @@ end
     @test length(@test_logs((:warn, "Could not find some metadata for coil 7"),
                             TriMRS.parse_yaps_rx_coil_selection(yaps_dict))) == 7
 end
+
+

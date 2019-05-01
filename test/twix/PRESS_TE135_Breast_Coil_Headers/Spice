@@ -1,0 +1,554 @@
+<XProtocol> 
+{
+  
+  <ParamMap.""> 
+  {
+    <ParamMap."PARC"> 
+    {
+      
+      <ParamMap."HARDWARE"> 
+      {
+        
+        <ParamString."CPUCount">  { "2"  }
+        <ParamString."MaxMemory">  { "4096"  }
+        <ParamString."RAIDSize">  { "0"  }
+        <ParamString."PDSFastSize">  { "0"  }
+        <ParamString."PDSSaveSize">  { "0"  }
+      }
+      <ParamMap."EMMContent"> 
+      {
+        
+        <ParamLong."Syngo_Viewer_MaxNoOfImagesToLoad">  { 1000  }
+        <ParamLong."Syngo_Viewer_MaxNoOfSeriesToLoad">  { 15  }
+        <ParamBool."Syngo_Viewer_LoadAlwaysAfterCommit">  { }
+      }
+      <Pipe."PIPE"> 
+      {
+        
+        <PipeService."Receiver"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { }
+          <ParamLong."DATATHREADS">  { 1  }
+          <ParamLong."WATERMARK">  { }
+          
+          <ParamFunctor."source"> 
+          {
+            <Class> "MrReceiverFunctor@MrReceiverFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamBool."Workaround">  { }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamString."ParentLoid">  { "4.0.38737106"  }
+            <ParamString."ParentUid">  { }
+            <ParamString."DefaultSeriesLoid">  { "4.0.38737113"  }
+            <ParamLong."MultiStepId">  { -762  }
+            <ParamLong."SubProtocolId">  { -763  }
+            <ParamLong."SubProtocolIndex">  { }
+            <ParamLong."SubProtocolCount">  { 1  }
+            <ParamString."ContrastBolusAgent">  { "Gadovist"  }
+            <ParamDouble."ContrastBolusVolume">  { <Precision> 6  7.500000  }
+            <ParamDouble."ContrastBolusTotalDose">  { <Precision> 6  }
+            <ParamString."ContrastBolusIngredient">  { }
+            <ParamDouble."ContrastBolusIngredientConcentration">  { <Precision> 6  }
+            <ParamString."ContrastBolusAgentCodeValue">  { }
+            <ParamString."ContrastBolusAgentCodingScheme">  { }
+            <ParamString."ContrastBolusAgentCodeMeaning">  { "Gadovist"  }
+            <ParamDouble."PhaseOversampling">  { }
+            <ParamLong."BaseResolution">  { 1  }
+            <ParamLong."PhaseEncodingLines">  { 1  }
+            <ParamLong."Partitions">  { 1  }
+            <ParamLong."VectorSize">  { 1024  }
+            <ParamLong."FinalMatrixSizeRead">  { }
+            <ParamLong."FinalMatrixSizePhase">  { }
+            <ParamLong."FinalMatrixSizeSlice">  { 1  }
+            <ParamDouble."VoiThickness">  { <Precision> 6  15.000000  }
+            <ParamDouble."VoiNormalSag">  { <Precision> 6  }
+            <ParamDouble."VoiNormalCor">  { <Precision> 6  }
+            <ParamDouble."VoiNormalTra">  { <Precision> 6  1.000000  }
+            <ParamDouble."VoiPositionSag">  { <Precision> 6  94.261958  }
+            <ParamDouble."VoiPositionCor">  { <Precision> 6  -14.282387  }
+            <ParamDouble."VoiPositionTra">  { <Precision> 6  21.190799  }
+            <ParamDouble."VoiPhaseFOV">  { <Precision> 6  15.000000  }
+            <ParamDouble."VoiInPlaneRot">  { <Precision> 6  }
+            <ParamDouble."VoiReadoutFOV">  { <Precision> 6  15.000000  }
+            <ParamDouble."PartialFourierFactor">  { <Precision> 6  1.000000  }
+            <ParamLong."RSatArraySize">  { }
+            <ParamArray."RSatThickness"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatNormalSag"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatNormalCor"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatNormalTra"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatPositionSag"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatPositionCor"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamArray."RSatPositionTra"> 
+            {
+              <Default> <ParamDouble.""> 
+              {
+                <Precision> 6 
+              }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              { }
+              
+            }
+            <ParamLong."MixingTime">  { 0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  }
+            <ParamLong."HammingFilterOn">  { }
+            <ParamLong."HammingFilterWidth">  { }
+            <ParamDouble."TransmitterReferenceAmplitude">  { <Precision> 6  347.964294  }
+            <ParamString."ResonantNucleus">  { "1H"  }
+            <ParamLong."RemoveOversampling">  { 1  }
+            <ParamLong."FlowCompensation">  { 1 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  }
+            <ParamLong."GradientMode">  { 1  }
+            <ParamLong."FlipAngleMode">  { 1  }
+            <ParamString."PostProcProtocol">  { }
+            <ParamString."AngioFlag">  { "N"  }
+            <ParamString."SequenceString">  { "svs_se"  }
+            <ParamBool."IsInlineCompose">  { }
+            <ParamBool."IsLastStep">  { }
+            <ParamLong."DiffusionMode">  { 1  }
+            <ParamString."DMWLPauseCodeValue">  { }
+            <ParamString."DMWLPauseCodeSchemeVersion">  { }
+            <ParamString."DMWLPauseCodeSchemeDesignator">  { }
+            <ParamString."DMWLPauseCodeMeaning">  { }
+            <ParamString."DMWLMeasCodeValue">  { }
+            <ParamString."DMWLMeasCodeSchemeVersion">  { }
+            <ParamString."DMWLMeasCodeSchemeDesignator">  { }
+            <ParamString."DMWLMeasCodeMeaning">  { }
+            <ParamLong."SpectroFreqCorrAcc">  { 1  }
+            <ParamLong."MultiBandFactor">  { 1  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "Displayer.display" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."Displayer"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."display"> 
+          {
+            <Class> "MrDisplayerFunctor@MrDisplayerFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamBool."ActivateDisplay">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamString."StudyLOID">  { "4.0.38737106"  }
+            <ParamString."PatientsName">  { "xxxxxxxxxxxxxxx"  }
+            <ParamLong."StoreImages">  { }
+            <ParamLong."DisableChangeStoreImages">  { 1  }
+            <ParamDouble."FlipAngle">  { <Precision> 6  90.000000  }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "Eraser.erase" "ReceiveFrameDesc"  }
+          }
+        }
+        
+        <PipeService."Eraser"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."erase"> 
+          {
+            <Class> "MrDeleteFunctor@MrCommiterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."DisableChangeStoreImages">  { 1  }
+            <ParamLong."StoreImages">  { }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "SystemData.systemdata" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."SystemData"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."systemdata"> 
+          {
+            <Class> "MrSystemDataFunctor@MrSystemDataFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamLong."PhysioSignal1">  { 1  }
+            <ParamLong."PhysioMethod1">  { 1  }
+            <ParamLong."PhysioSignal2">  { 1  }
+            <ParamLong."PhysioMethod2">  { 1  }
+            <ParamLong."NRetroGatedImages">  { 16  }
+            <ParamLong."NPhases">  { 1  }
+            <ParamBool."SimulatePMUServerIF">  { }
+            <ParamBool."SimulateMesSerIF">  { }
+            <ParamBool."SimulatePatSafIF">  { }
+            <ParamString."SequenceStringYaps">  { "svs_se"  }
+            <ParamLong."SiemensSequence">  { 1  }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "PixelWriter.pixelw" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."PixelWriter"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."pixelw"> 
+          {
+            <Class> "MrPixelWriterFunctor@MrPixelWriterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "StampWriter.stamp" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."StampWriter"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."stamp"> 
+          {
+            <Class> "MrStampWriterFunctor@MrStampWriterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamBool."CreateStamp">  { "true"  }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "Recycle.sync" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."Recycle"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Acquisition"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."sync"> 
+          {
+            <Class> "MrSyncFunctor@MrCommiterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamArray."SyncObjNames"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "WritePixelFileCompletly"  }
+              { "WriteStampFileCompletly"  }
+              
+            }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "recycle" "ReceiveFrameDesc"  }
+          }
+          <ParamFunctor."recycle"> 
+          {
+            <Class> "MrRecycleFunctor@MrCommiterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "DicomWriter.dicomwriter" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."DicomWriter"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Storage"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."dicomwriter"> 
+          {
+            <Class> "MrDicomFunctor@MrDicomFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamBool."Workaround">  { "true"  }
+            <ParamString."UserToken">  { }
+            <ParamBool."IsInlineCompose">  { }
+            <ParamLong."DisableChangeStoreImages">  { 1  }
+            <ParamArray."Studyloids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "4.0.38737106"  }
+              
+            }
+            <ParamArray."MppsLoids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "2.0.41368025"  }
+              
+            }
+            <ParamArray."DefaultSeriesLoids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "4.0.38737113"  }
+              
+            }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "Commiter.commit" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."Commiter"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Storage"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."commit"> 
+          {
+            <Class> "MrCommiterFunctor@MrCommiterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamBool."Workaround">  { "true"  }
+            <ParamString."UserToken">  { }
+            <ParamBool."IsInlineCompose">  { }
+            <ParamLong."DisableChangeStoreImages">  { 1  }
+            <ParamLong."Concatenations">  { 1  }
+            <ParamBool."OnlineSendIMA">  { }
+            <ParamBool."OnlineSendRAW">  { }
+            <ParamLong."OnlineTargetPort">  { 8111  }
+            <ParamString."OnlineTargetHostName">  { "localhost"  }
+            <ParamString."OnlineTargetPath">  { }
+            <ParamLong."OnlineCommitByCount">  { }
+            <ParamLong."OnlineCommitByTimeMs">  { }
+            <ParamBool."OnlineSendImplicitly">  { }
+            <ParamArray."Studyloids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "4.0.38737106"  }
+              
+            }
+            <ParamArray."MppsLoids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "2.0.41368025"  }
+              
+            }
+            <ParamArray."DefaultSeriesLoids4Split"> 
+            {
+              <Default> <ParamString.""> 
+              {
+              }
+              { "4.0.38737113"  }
+              
+            }
+            <ParamString."MppsLOIDS4DMWLPause">  { }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Connection."connection0">  { "SendFrameDesc" "Event.event" "ReceiveFrameDesc"  }
+          }
+        }
+        <PipeService."Event"> 
+        {
+          <Class> "PipeLinkService@MrParc" 
+          
+          <ParamString."GROUP">  { "Storage"  }
+          <ParamLong."POOLTHREADS">  { 1  }
+          <ParamLong."DATATHREADS">  { }
+          <ParamLong."WATERMARK">  { }
+          <ParamFunctor."event"> 
+          {
+            <Class> "MrEventFunctor@MrCommiterFunctor" 
+            
+            <ParamBool."EXECUTE">  { "true"  }
+            <ParamBool."Workaround">  { "true"  }
+            <ParamString."MainDB">  { "Local"  }
+            <ParamString."StudyLoid">  { "4.0.38737106"  }
+            <ParamString."PatientLoid">  { "4.0.38737098"  }
+            <ParamLong."MeasUID">  { 316  }
+            <ParamString."UserToken">  { }
+            <ParamLong."DisableAutoFilming">  { }
+            <ParamLong."DisableAutoViewing">  { }
+            <ParamLong."DisableAutoTransfer">  { }
+            <ParamLong."MaxNoOfImagesToLoad">  { 1000  }
+            <ParamLong."MaxNoOfSeriesToLoad">  { 15  }
+            <ParamBool."LoadAlwaysAfterCommit">  { }
+            <ParamBool."CreateMReport">  { }
+            <ParamBool."OpenMReport">  { }
+            <ParamBool."InteractiveMReport">  { }
+            <Method."ReceiveFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+            <Event."SendFrameDesc">  { "uint64_t" "class MrParcDsc &"  }
+          }
+        }
+      }
+      <ParamMap."SERVICES"> 
+      {
+        
+        <ParamFunctor."PDS"> 
+        {
+          <Class> "PDS@MrParc" 
+          
+          <ParamLong."MeasUid">  { 316  }
+        }
+        <ParamFunctor."Receiver"> 
+        {
+          <Class> "Receiver@SpiceServices" 
+          
+          <ParamLong."TimeoutMsec">  { -1  }
+          <ParamLong."MeasUID">  { 316  }
+          <ParamLong."QuotaLimit">  { 200  }
+          <ParamBool."UseNativeMemoryQuota">  { "true"  }
+          <ParamLong."UNMQ_SizeOfTypicallyMhBuf">  { 15492  }
+          <ParamLong."UNMQ_SizeOfTypicallyMainBuf">  { 131072  }
+          <ParamLong."UNMQ_FactorMhBuf2MhMemory">  { 8  }
+          <ParamLong."UNMQ_MaxFramesInQuota">  { 500  }
+        }
+        <ParamFunctor."MeasContext"> 
+        {
+          <Class> "MeasContext@MrParc" 
+          
+          <ParamLong."RegisterID">  { 14  }
+          <ParamLong."MeasUid">  { 316  }
+          <ParamBool."HighPrio">  { }
+          <ParamBool."PatChanged">  { }
+          <ParamLong."MultiStepProt">  { -762  }
+          <ParamString."Study">  { "4.0.38737106"  }
+          <ParamString."Patient">  { "4.0.38737098"  }
+          <ParamString."EndMultiStep">  { }
+          <ParamString."EndStudy">  { }
+          <ParamBool."IsInlineProcessing">  { "true"  }
+        }
+        <ParamFunctor."ExamMemoryService"> 
+        {
+          <Class> "ExamMemoryService@ExamMemoryService" 
+          
+          <ParamString."ExamMemoryUID">  { "4_0_38737106_20171101_143230_153"  }
+        }
+      }
+    }
+  }
+}

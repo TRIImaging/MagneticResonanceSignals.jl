@@ -285,7 +285,13 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     # contains parameters relevant to downstream interpretation by the ICE
     # program (...I think?)
     @debug "Header section names" keys(header_sections)
-    metadata = parse_header_yaps(header_sections["MeasYaps"])
+    metadata = Dict{String,Any}()
+    try
+        metadata = parse_header_yaps(header_sections["MeasYaps"])
+        metadata = merge(metadata, parse_header_dicom(header_sections["Dicom"]))
+    catch exc
+        @error "Could not header metadata" exception=(exc,catch_backtrace())
+    end
     coils = RxCoilElementData[]
     try
         coils = parse_yaps_rx_coil_selection(metadata)
@@ -529,6 +535,21 @@ function parse_twix_header_sections(io)
     sections
 end
 
+function parse_header_dicom(xprot_text)
+    # Very heuristic "parsing" of dicom header section.
+    # Ideally we'd have a proper XProtocol parser (see xprotocol.jl), but that
+    # seems like too much work.
+    metadata = Dict{String,String}()
+    for key in ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName",
+                "Manufacturer", "ManufacturersModelName"]
+        m = match(Regex("""<ParamString\\."$key">\\s*\\{\\s*"([^}]*)"\\s*\\}""", "s"), xprot_text)
+        if m !== nothing
+            metadata["DICOM."*key] = m[1]
+        end
+    end
+    metadata
+end
+
 function parse_header_yaps(yaps)
     metadata = Dict{String,Any}()
     for line in split(yaps, '\n')
@@ -536,7 +557,7 @@ function parse_header_yaps(yaps)
             continue
         end
         m = match(r"^([^#\s]+)\s*=\s*(.*?)\s*$", line)
-        if m != nothing
+        if m !== nothing
             if occursin(r"^\".*\"$", m[2])
                 metadata[m[1]] = m[2][2:end-1]
             elseif occursin(r"^[+-]?\d+\.\d*([eE][-+]?\d+)?$", m[2])
