@@ -27,8 +27,14 @@ end
     @test twix.metadata["tProtocolName"] == "svs_lcosy"
     @test twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"] == 123255189
     @test twix.metadata["sTXSPEC.asNucleusInfo[0].lFrequency"] == 123255189
-    @test twix.metadata["DICOM.ManufacturersModelName"] == "Prisma"
-    @test twix.metadata["DICOM.DeviceSerialNumber"]     == "166042"
+
+    @test twix.metadata["Dicom.ManufacturersModelName"] == "Prisma"
+    @test twix.metadata["Dicom.DeviceSerialNumber"] == "166042"
+
+    @test twix.metadata["Meas.tReferenceImage0"] == "1.3.12.2.1107.5.2.43.166042.2018112712225215359633498"
+    @test twix.metadata["Meas.tReferenceImage1"] == "1.3.12.2.1107.5.2.43.166042.2018112712230494362433518"
+    @test twix.metadata["Meas.tReferenceImage2"] == "1.3.12.2.1107.5.2.43.166042.2018112712231775153533538"
+    @test twix.metadata["Meas.tFrameOfReference"] == "1.3.12.2.1107.5.2.43.166042.1.20181127122016414.0.0.4988"
 end
 
 

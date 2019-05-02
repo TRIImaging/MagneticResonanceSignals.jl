@@ -161,11 +161,36 @@ counter_labels(::MRExperiment) =
 """
 Extract the date and time of the localizer images used as reference
 """
-function ref_epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
+function ref_epoch(expt::MRExperiment)
     # On the IDEA forum, Eddie Auerbach suggests:
     #   "tReferenceImage0,1,2 are the unique IDs for the 3 localizer images
     #   used for slice prescription. In YAPS you have tFrameOfReference,
     #   which I'm guessing is an ID for the last acquired shim phasemap."
+    dts = []
+    for (k,str) in meta_search(expt, "tReferenceImage")
+        try
+            push!(dts, DateTime(last(split(str, '.'))[1:14], dateformat"yyyymmddHHMMSS"))
+        catch
+            # There seems to commonly (always?) be an invalid datetime in the
+            # year 3000 here - just ignore that one.
+        end
+    end
+    if !isempty(dts)
+        return minimum(dts)
+    end
+    # Some scans may not have tReferenceImage however it seems there can be a
+    # tFrameOfReference in the Yaps section of the Meas header. (For whatever
+    # reason this doesn't make it into the MeasYaps header??)
+    try
+        m = match(r"\.(2\d{13})", expt.metadata["Meas.tFrameOfReference"])
+        return DateTime(m[1], dateformat"yyyymmddHHMMSS")
+    catch exc
+        @warn "Could not find date of scan (reference epoch) in twix metadata" exception=exc
+        return missing
+    end
+end
+
+function ref_epoch(expt::MRExperiment, search_key)
     dts = []
     for (k,str) in meta_search(expt, search_key)
         try
@@ -175,10 +200,6 @@ function ref_epoch(expt::MRExperiment, search_key=r"^tReferenceImage")
             # year 3000 here - just ignore that one.
         end
     end
-    # TODO: Some scans may not have tReferenceImage. Seems there's
-    # tFrameOfReference in the Meas header, so we should probably be pulling
-    # that instead of looking in the YAPS.  Need to implement an XProtocol
-    # parser :-(
     isempty(dts) ? missing : minimum(dts)
 end
 
@@ -285,10 +306,14 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     # contains parameters relevant to downstream interpretation by the ICE
     # program (...I think?)
     @debug "Header section names" keys(header_sections)
-    metadata = Dict{String,Any}()
+    metadata = parse_header_yaps(header_sections["MeasYaps"])
     try
-        metadata = parse_header_yaps(header_sections["MeasYaps"])
-        metadata = merge(metadata, parse_header_dicom(header_sections["Dicom"]))
+        dicom_meta = match_xprot_header(header_sections["Dicom"], "Dicom.",
+                                        ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName", "Manufacturer", "ManufacturersModelName"])
+        meas_meta  = match_xprot_header(header_sections["Meas"], "Meas.",
+                                        ["tReferenceImage0", "tReferenceImage1", "tReferenceImage2",
+                                         "tFrameOfReference"])
+        metadata = merge(metadata, dicom_meta, meas_meta)
     catch exc
         @error "Could not header metadata" exception=(exc,catch_backtrace())
     end
@@ -436,7 +461,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         num_samples   = read(iob, UInt16)
         num_channels  = read(iob, UInt16)
         # TODO: Ordering of loop counters have changed between software versions!!
-        # 
+        #
         # read_meas_dat_mdh_binary__alt.m Lists the ordering of the loop counters as
         # line,acquisition,slice,partition,echo,phase,repetition,set,seg,ida,idb,idc,idd,ide.
         #
@@ -535,16 +560,15 @@ function parse_twix_header_sections(io)
     sections
 end
 
-function parse_header_dicom(xprot_text)
-    # Very heuristic "parsing" of dicom header section.
+function match_xprot_header(xprot_text, key_prefix, xprot_keys)
+    # Very heuristic "parsing" of XProtocol header section.
     # Ideally we'd have a proper XProtocol parser (see xprotocol.jl), but that
-    # seems like too much work.
+    # seems like a lot of work.
     metadata = Dict{String,String}()
-    for key in ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName",
-                "Manufacturer", "ManufacturersModelName"]
+    for key in xprot_keys
         m = match(Regex("""<ParamString\\."$key">\\s*\\{\\s*"([^}]*)"\\s*\\}""", "s"), xprot_text)
         if m !== nothing
-            metadata["DICOM."*key] = m[1]
+            metadata[key_prefix*key] = m[1]
         end
     end
     metadata
