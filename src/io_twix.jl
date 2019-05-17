@@ -758,7 +758,7 @@ function mr_load(twix::MRExperiment)
         end
 
         TE = get(twix.metadata,"alTE[0]", 0)u"μs"
-        if TE != 30u"ms"
+        if TE != 30000u"μs"
             @warn "Found unexpected TE=$TE in L-COSY sequence"
         end
 
