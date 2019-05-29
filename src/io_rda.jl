@@ -1,11 +1,16 @@
 """
     load_rda(rda_file)
 
-Load header dictionary and FID data from a Siemens .rda file.
-This has only basic support for loading a single FID.
+Load header dictionary and spectroscopy data from a Siemens .rda file.  Returns
+`header,data`, where `header` is a simple dictionary containing the ASCII
+header, and `data` is the time domain induced magnetization signal.
 
-Returns `header,data`, where `header` is a simple dictionary containing the
-ASCII header, and `data` is the FID.
+Single voxel spectroscopy data will be loaded as a vector containing the single
+magnentization signal.
+
+For spectroscopy with a spatial component (that is, CSI data with at least one
+header field `CSIMatrixSize[i]` not equal to 1), an array of size N×I×K×J will
+be returned where I,J,K are the CSI indices 0,1,2 and the FID length is N.
 """
 function load_rda(io::IO)
     firstline = readline(io)
@@ -31,14 +36,19 @@ function load_rda(io::IO)
         end
         header[m[1]] = m[2]
     end
-    csi_length = prod(get(header, "CSIMatrixSize[$i]", "1") != 1 for i=1:3)
-    csi_length == 1 || error("CSI data shape not implemented")
-    # RDA should always be channel combined (& averaged?)
+    vecsize = parse(Int, header["VectorSize"])
+    csi_dims = [parse(Int, get(header, "CSIMatrixSize[$i]", "1")) for i=0:2]
+    # RDA should always be channel combined (& averaged?), so expect a single
+    # FID per voxel.
+    data_dims = prod(csi_dims) == 1 ? (vecsize,) : (vecsize, csi_dims...)
     raw_data = read(io)
-    data = reinterpret(ComplexF64, raw_data)
-    if length(data) != parse(Int,header["VectorSize"])
-        error("Unexpected .rda data length $(length(data))")
+    if sizeof(raw_data) != prod(data_dims)*sizeof(ComplexF64)
+        error("""
+              Wrong amount of raw data in .rda file.
+              Expected $data_dims ComplexF64's. Got $(length(raw_data)) bytes instead.""")
     end
+    data = Array{ComplexF64}(undef, data_dims)
+    copy!(data, reshape(reinterpret(ComplexF64, raw_data), data_dims))
     header, data
 end
 
@@ -52,8 +62,16 @@ Save a single FID as Siemens format .rda.  `header` should be a dictionary of
 key values for the rda ASCII header.
 """
 function save_rda(io::IO, header::AbstractDict, data)
-    if parse(Int, header["VectorSize"]) != length(data)
+    if parse(Int, header["VectorSize"]) != size(data,1)
         error("rda header VectorSize mismatches with length(data)")
+    end
+    for dim in 2:4
+        csi_key = "CSIMatrixSize[$(dim-2)]"
+        h_size = parse(Int, get(header, csi_key, "1"))
+        d_size = size(data, dim)
+        if h_size != d_size
+            error("rda header entry $csi_key=$h_size is inconsistent with data dimension $dim of length $d_size")
+        end
     end
     write(io, ">>> Begin of header <<<\r\n")
     for (key,val) in header

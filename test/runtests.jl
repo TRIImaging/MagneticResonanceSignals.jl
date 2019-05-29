@@ -13,6 +13,7 @@ include("processing.jl")
 include("windows.jl")
 
 include("io_twix.jl")
+include("io_rda.jl")
 include("io_felix.jl")
 
 end
