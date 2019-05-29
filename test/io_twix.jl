@@ -21,6 +21,11 @@
         """
 end
 
+@testset "twix quality control" begin
+    twix = @test_logs (Logging.Warn,r"Unexpected empty meas packet") #=
+               =# load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_incomplete.twix")
+    @test TriMRS.AcquisitionsIncomplete in twix.quality_control
+end
 
 @testset "metadata parsing" begin
     twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")

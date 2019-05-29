@@ -95,6 +95,18 @@ end
 # Metadata
 
 """
+Data quality control flags for raw file parsing.
+
+We generally use these flags rather than returning hard errors because it's
+useful to be able to parse apparently incomplete or partially corrupt raw data.
+
+Flags include:
+
+* AcquisitionsIncomplete - the acquisition list appeared to be truncated
+"""
+@enum DataStatus AcquisitionsIncomplete
+
+"""
     RxCoilElementData(
         element, coil_id, unique_key, coil_copy, coil_type,
         rx_channel_connected, adc_channel_connected, mux_channel_connected,
@@ -131,9 +143,10 @@ end
 
 #-------------------------------------------------------------------------------
 """
-    MRExperiment(metadata, coils, acq_data)
     load_twix(twix_file_name)
     load_twix(io)
+
+    MRExperiment(metadata, coils, quality_control, acq_data)
 
 Container for data from a generic magnetic resonance experiment: a series of
 `Acquisition`s, each of which records the coil response due to induced nuclear
@@ -147,6 +160,7 @@ tool from the Siemens proprietary IDEA development environment.
 struct MRExperiment
     metadata # TODO: rename to yaps, as we're only parsing yaps data.
     coils::Vector{RxCoilElementData}
+    quality_control::Set{DataStatus}
     data::Vector{Acquisition}
 end
 
@@ -300,8 +314,8 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
                    meas_selector=last)
     # TWIX is little endian binary data, with ascii header
     check_twix_type(io)
-    header_sections,acquisitions = load_twix_vd(io, header_only, acquisition_filter,
-                                                meas_selector)
+    header_sections,quality_control,acquisitions =
+        load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     # For now parse the MeasYaps section as it's is the easiest to parse and
     # contains parameters relevant to downstream interpretation by the ICE
     # program (...I think?)
@@ -323,7 +337,7 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     catch exc
         @error "Could not parse coil metadata" exception=(exc,catch_backtrace())
     end
-    MRExperiment(metadata, coils, acquisitions)
+    MRExperiment(metadata, coils, quality_control, acquisitions)
 end
 
 load_twix(filename::String; kws...) = open(io->load_twix(io, kws...), filename)
@@ -341,7 +355,7 @@ function dump_twix_headers(filename, dump_dir; meas_selector=last)
     # TWIX is little endian binary data, with ascii header
     open(filename) do io
         check_twix_type(io)
-        header_sections,acquisitions = load_twix_vd(io, true, (a)->true, meas_selector)
+        header_sections,_,_ = load_twix_vd(io, true, (a)->true, meas_selector)
         for (sect_name,sect_data) in header_sections
             open(joinpath(dump_dir, sect_name), "w") do out
                 write(out, sect_data)
@@ -389,8 +403,9 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     header_sections = parse_twix_header_sections(IOBuffer(header))
 
     acquisitions = Acquisition[]
+    quality_control = Set{DataStatus}()
     if header_only
-        return header_sections, acquisitions
+        return header_sections, quality_control, acquisitions
     end
 
     # read each scan until we hit the acq_end flag
@@ -402,7 +417,10 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
         PCI_rx = temp >> 26
         #@show DMA_length pack_flag PCI_rx
         if DMA_length < sizeof(UInt32)
-            @warn "Unexpected empty meas packet before acq_end flag" DMA_length
+            # From observing various partially complete twix files, this seems
+            # to happen when the scan is cancelled.
+            @warn "Unexpected empty meas packet before acq_end flag - assuming truncated acquisition" DMA_length
+            push!(quality_control, AcquisitionsIncomplete)
             break
         end
 
@@ -536,7 +554,7 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             push!(acquisitions, acq)
         end
     end
-    header_sections, acquisitions
+    header_sections, quality_control, acquisitions
 end
 
 
