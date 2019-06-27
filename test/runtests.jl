@@ -16,6 +16,5 @@ include("fixedstring.jl")
 include("io_twix.jl")
 include("io_rda.jl")
 include("io_felix.jl")
-include("io_nmrpipe.jl")
 
 end

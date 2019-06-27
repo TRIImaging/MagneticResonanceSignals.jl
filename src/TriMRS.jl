@@ -22,7 +22,6 @@ include("fixedstring.jl")  # IO Util
 include("io_twix.jl")
 include("io_felix.jl")
 include("io_rda.jl")
-include("io_nmrpipe.jl")
 
 # TODO: Kill off MRAxis
 include("MRAxis.jl")
