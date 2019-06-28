@@ -1,5 +1,17 @@
 # Core abstractions for the package
 
+@unit ppm "ppm" PartsPerMillion 1//1000000 false
+
+Unitful.register(TriMRS)
+
+"""
+4.7 is a chosen nominal chemical shift of water relative to TMS.  Note that
+this is only approximate because the true shift can vary based on pH,
+temperature, etc and you should calibrate your spectral axes against known
+metabolites.
+"""
+const _water_tms_offset = 4.7u"ppm"
+
 struct MRMetadata
     protocol_name    # Name of sequence parameter set
     sequence_name    # Name of MR sequence code

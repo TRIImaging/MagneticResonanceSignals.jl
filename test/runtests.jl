@@ -8,6 +8,7 @@ getaxis(samples, name) = AxisArrays.axes(samples, Axis{name}).val
 
 @testset "TriMRS" begin
 
+include("core.jl")
 include("mr_load.jl")
 include("processing.jl")
 include("windows.jl")

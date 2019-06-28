@@ -81,4 +81,11 @@ export
 
 @deprecate load_twix_raw load_twix
 
+const _local_basefactors = Unitful.basefactors
+
+function __init__()
+    Unitful.register(TriMRS)
+    merge!(Unitful.basefactors, _local_basefactors)
+end
+
 end # module
