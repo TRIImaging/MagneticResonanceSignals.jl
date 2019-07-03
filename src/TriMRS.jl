@@ -22,6 +22,7 @@ include("fixedstring.jl")  # IO Util
 include("io_twix.jl")
 include("io_felix.jl")
 include("io_rda.jl")
+include("io_nmrpipe.jl")
 
 # TODO: Kill off MRAxis
 include("MRAxis.jl")
@@ -46,7 +47,10 @@ export load_rda,
     save_rda,
     load_twix,
     save_felix,
-    twix_to_nmrpipe
+    save_nmrpipe
+
+# Conversion utils
+export twix_to_nmrpipe
 
 # Axes
 # TODO: Deprecate / remove all this in favour of AxisArray
