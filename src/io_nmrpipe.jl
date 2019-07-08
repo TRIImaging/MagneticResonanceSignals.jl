@@ -334,6 +334,6 @@ function twix_to_nmrpipe(twix_path, nmrpipe_path)
 
     save_nmrpipe(nmrpipe_path, signal, (Axis{:time1}, Axis{:time2});
                  frequency=frequency,
-                 ref_freq_offset=(0.0u"ppm", _water_tms_offset))
+                 ref_freq_offset=(_water_tms_offset, _water_tms_offset))
 end
 
