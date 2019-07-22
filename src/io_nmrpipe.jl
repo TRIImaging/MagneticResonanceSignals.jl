@@ -319,21 +319,29 @@ function save_nmrpipe(filename::AbstractString, args...; kws...)
     end
 end
 
+_open(f, io::IO, args...) = f(io)
+_open(f, name::AbstractString, args...; kws...) = open(f, name, args...; kws...)
+
+
 """
-    twix_to_nmrpipe(twix_path, nmrpipe_path)
+    twix_to_nmrpipe(twix, nmrpipe_path)
 
-`twix_path` is the path of the original twix data file
-`nmrpipe_path` is the path of the result file to be written
+`twix` is a path or open IO stream to the original twix data file.
+`nmrpipe` is a path or open IO stream to the result file to be written.
 """
-function twix_to_nmrpipe(twix_path, nmrpipe_path)
-    twix = load_twix(twix_path)
-    expt = mr_load(twix)
-    signal = simple_averaging(expt, downsample=2)
+function twix_to_nmrpipe(twix, nmrpipe)
+    _open(twix) do twix_io
+        twix_data = load_twix(twix_io)
+        expt = mr_load(twix_data)
+        signal = simple_averaging(expt, downsample=2)
 
-    frequency = standard_metadata(twix).frequency
+        frequency = standard_metadata(twix_data).frequency
 
-    save_nmrpipe(nmrpipe_path, signal, (Axis{:time1}, Axis{:time2});
-                 frequency=frequency,
-                 ref_freq_offset=(_water_tms_offset, _water_tms_offset))
+        _open(nmrpipe, "w") do nmrpipe_io
+            save_nmrpipe(nmrpipe_io, signal, (Axis{:time1}, Axis{:time2});
+                         frequency=frequency,
+                         ref_freq_offset=(_water_tms_offset, _water_tms_offset))
+        end
+    end
 end
 
