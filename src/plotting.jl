@@ -1,3 +1,5 @@
+using PrettyTables
+
 # MRExperiment is summarized in terms of its loop counters.
 @recipe function f(expt::MRExperiment)
     acq = expt.data
@@ -18,6 +20,29 @@
             end
         end
     end
+end
+
+filter_zero_counters(counter_vals,col) = any(counter_vals[:,col] .!= 0)
+
+"""
+    summarize(expt::MRExperiment)
+
+Print detailed textural summary of the MR experiment. `kwargs` are passed to
+`PrettyTables.pretty_table()`, for example, to show loop counters which are all
+zero, add the keyword argument `filters_col=()`.
+"""
+function summarize(io::IO, expt::MRExperiment; kwargs...)
+    kwargs = merge((crop=:horizontal, filters_col=(filter_zero_counters,),), kwargs)
+    counter_names = collect(fieldnames(LoopCounters))
+    counter_vals = zeros(Int, length(expt.data), length(counter_names))
+    for (i,acq) in enumerate(expt.data)
+        counter_vals[i,:] = acq.loop_counters
+    end
+    pretty_table(io, counter_vals, counter_names; kwargs...)
+end
+
+function summarize(expt::MRExperiment; kwargs...)
+    summarize(stdout, expt; kwargs...)
 end
 
 # Color map similar to the one which comes with Felix NMR
