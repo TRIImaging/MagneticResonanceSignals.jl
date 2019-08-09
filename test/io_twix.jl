@@ -33,6 +33,12 @@ end
     twix = @test_logs (Logging.Warn,r"Unexpected empty measurement header sections") match_mode=:any #=
         =# load_twix(IOBuffer(partially_zeroed_twix))
     @test TriMRS.MeasHeaderEmpty in twix.quality_control
+
+    truncated_twix = copy(valid_twix_bytes)
+    truncated_twix = truncated_twix[1:900_000]
+    twix = @test_logs (Logging.Warn,r"Twix acquisition truncated at position 900000") #=
+        =# load_twix(IOBuffer(truncated_twix))
+    @test TriMRS.AcquisitionsIncomplete in twix.quality_control
 end
 
 @testset "metadata parsing" begin

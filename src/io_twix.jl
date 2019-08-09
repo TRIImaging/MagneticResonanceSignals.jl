@@ -435,7 +435,14 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
             break
         end
 
-        iob = IOBuffer(read(io, DMA_length-sizeof(UInt32)))
+        acq_len = DMA_length-sizeof(UInt32)
+        acq_buf = read(io, acq_len)
+        if length(acq_buf) < acq_len
+            @warn "Twix acquisition truncated at position $(position(io))" io
+            push!(quality_control, AcquisitionsIncomplete)
+            break
+        end
+        iob = IOBuffer(acq_buf)
 
         meas_uid       = read(iob, UInt32)
         scan_counter   = read(iob, UInt32)
