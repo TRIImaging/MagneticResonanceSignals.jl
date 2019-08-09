@@ -104,7 +104,7 @@ Flags include:
 
 * AcquisitionsIncomplete - the acquisition list appeared to be truncated
 """
-@enum DataStatus AcquisitionsIncomplete
+@enum DataStatus AcquisitionsIncomplete MeasHeaderEmpty
 
 """
     RxCoilElementData(
@@ -320,16 +320,17 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     # contains parameters relevant to downstream interpretation by the ICE
     # program (...I think?)
     @debug "Header section names" keys(header_sections)
-    metadata = parse_header_yaps(header_sections["MeasYaps"])
+    metadata = Dict{String,Any}()
     try
+        yaps_meta = parse_header_yaps(header_sections["MeasYaps"])
         dicom_meta = match_xprot_header(header_sections["Dicom"], "Dicom.",
                                         ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName", "Manufacturer", "ManufacturersModelName"])
         meas_meta  = match_xprot_header(header_sections["Meas"], "Meas.",
                                         ["tReferenceImage0", "tReferenceImage1", "tReferenceImage2",
                                          "tFrameOfReference"])
-        metadata = merge(metadata, dicom_meta, meas_meta)
+        metadata = merge(metadata, yaps_meta, dicom_meta, meas_meta)
     catch exc
-        @error "Could not header metadata" exception=(exc,catch_backtrace())
+        @error "Could not parse header metadata" exception=(exc,catch_backtrace())
     end
     coils = RxCoilElementData[]
     try
@@ -398,12 +399,22 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
 
     seek(io, meas_header.meas_offset)
 
+    acquisitions = Acquisition[]
+    quality_control = Set{DataStatus}()
+
     header_size = read(io, UInt32)
+    if header_size < sizeof(UInt32)
+        push!(quality_control, MeasHeaderEmpty)
+        meas_remaining_bytes = read(io, meas_header.meas_length - sizeof(header_size))
+        @warn """
+              Unexpected empty measurement header sections; measurement is
+              probably corrupt.
+              """ header_size length(meas_remaining_bytes) iszero(meas_remaining_bytes)
+        return Dict{String,String}(), quality_control, acquisitions
+    end
     header      = read(io, header_size - sizeof(UInt32))
     header_sections = parse_twix_header_sections(IOBuffer(header))
 
-    acquisitions = Acquisition[]
-    quality_control = Set{DataStatus}()
     if header_only
         return header_sections, quality_control, acquisitions
     end

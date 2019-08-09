@@ -25,6 +25,14 @@ end
     twix = @test_logs (Logging.Warn,r"Unexpected empty meas packet") #=
                =# load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_incomplete.twix")
     @test TriMRS.AcquisitionsIncomplete in twix.quality_control
+
+    valid_twix_bytes = read("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+
+    partially_zeroed_twix = copy(valid_twix_bytes)
+    partially_zeroed_twix[0x69:end] .= 0
+    twix = @test_logs (Logging.Warn,r"Unexpected empty measurement header sections") match_mode=:any #=
+        =# load_twix(IOBuffer(partially_zeroed_twix))
+    @test TriMRS.MeasHeaderEmpty in twix.quality_control
 end
 
 @testset "metadata parsing" begin
