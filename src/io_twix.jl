@@ -341,7 +341,7 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     MRExperiment(metadata, coils, quality_control, acquisitions)
 end
 
-load_twix(filename::String; kws...) = open(io->load_twix(io, kws...), filename)
+load_twix(filename::String; kws...) = open(io->load_twix(io; kws...), filename)
 
 """
     dump_twix_headers(filename, dump_dir; meas_selector=last)
