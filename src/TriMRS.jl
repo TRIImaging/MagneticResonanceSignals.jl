@@ -16,6 +16,7 @@ using Colors
 
 include("core.jl")
 include("LCOSY.jl")
+include("PRESS.jl")
 
 include("fixedstring.jl")  # IO Util
 

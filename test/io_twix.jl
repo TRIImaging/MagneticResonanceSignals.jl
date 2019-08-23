@@ -1,4 +1,4 @@
-@testset "twix input" begin
+@testset "twix input svs_lcosy" begin
     twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
     @test length(twix.data) == 1
     acq = twix.data[1]
@@ -19,6 +19,65 @@
           Number   = 1
           Duration = 0.0 s
         """
+end
+
+@testset "twix input press" begin
+    # Avg = 1
+    twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svsse_ref-1_avg-1.twix")
+    @test length(twix.data) == 2
+    acq = twix.data[2]
+    @test size(acq.data) == (2080,34)
+    @test eltype(acq.data) == ComplexF32
+    @test acq.cutoff_pre  == 0x0000
+    @test acq.cutoff_post == 0x0020
+
+    @test sprint(show, twix) == """
+        MRExperiment metadata:
+          Protocol           = svs_se-ref-1_avg-1
+          Sequence File Name = %SiemensSeq%\\svs_se
+          Software Version   = N4_VE11C_LATEST_20160120
+          Reference Date     = 2019-08-22T15:00:28
+          Frequency          = 123254849 Hz
+          Coils              = ["HeadNeck_64"]
+        Acquisition summary:
+          Number   = 2
+          Duration = 2.0 s
+          Loop index 6 in [0,1]   (phase)
+        """
+    expt = mr_load(twix)
+    @test length(expt.press_scans) == 1
+    @test length(expt.navigator) == 0
+    @test length(expt.ref_scans) == 1
+
+    # Avg = 2
+    twix = load_twix("twix/sub-SiemensBrainPhantom_seq-svsse_ref-1_avg-2.twix")
+    @test length(twix.data) == 3
+    all_acq = twix.data[2:end]
+    for acq in all_acq
+        @test size(acq.data) == (2080,34)
+        @test eltype(acq.data) == ComplexF32
+        @test acq.cutoff_pre  == 0x000c
+        @test acq.cutoff_post == 0x0014
+    end
+
+    @test sprint(show, twix) == """
+        MRExperiment metadata:
+          Protocol           = svs_se-ref-1_avg-2
+          Sequence File Name = %SiemensSeq%\\svs_se
+          Software Version   = N4_VE11C_LATEST_20160120
+          Reference Date     = 2019-08-22T15:00:28
+          Frequency          = 123254849 Hz
+          Coils              = ["HeadNeck_64"]
+        Acquisition summary:
+          Number   = 3
+          Duration = 4.0 s
+          Loop index 2 in [0,1]   (acquisition)
+          Loop index 6 in [0,1]   (phase)
+        """
+    expt = mr_load(twix)
+    @test length(expt.press_scans) == 2
+    @test length(expt.navigator) == 0
+    @test length(expt.ref_scans) == 1
 end
 
 @testset "twix quality control" begin
