@@ -742,9 +742,11 @@ function mr_load(twix::MRExperiment)
     meta = standard_metadata(twix)
     @debug "Found standard metadata" meta
 
+    AUTO_REF_SCAN_OFF = 1
     is_svs_lcosy = occursin("svs_lcosy", meta.sequence_name)
     is_srcosy    = occursin("srcosy", meta.sequence_name) ||
                    occursin("sr_cosy", meta.sequence_name)
+    is_press     = "%SiemensSeq%\\svs_se" == meta.sequence_name
     if is_svs_lcosy || is_srcosy
         release_versions = ["%CustomerSeq%\\srcosy",
                             "%CustomerSeq%\\sr_cosy",
@@ -798,7 +800,7 @@ function mr_load(twix::MRExperiment)
             @warn "Found unexpected TE=$TE in L-COSY sequence"
         end
 
-        has_refscans = get(twix.metadata, "sSpecPara.lAutoRefScanMode", 1) != 1
+        has_refscans = get(twix.metadata, "sSpecPara.lAutoRefScanMode", 1) != AUTO_REF_SCAN_OFF
 
         ref_scans = Int[]
         lcosy_scans = zeros(Int, num_averages, nsamp_t1)
@@ -843,6 +845,69 @@ function mr_load(twix::MRExperiment)
 
         t1 = (0:nsamp_t1-1)*dt1
         return LCOSY(t1, meta, ref_scans, lcosy_scans, twix)
+    elseif is_press
+        num_averages = twix.metadata["lAverages"]
+        phase_cycle_types = OrderedDict(0x01 => 1, # PHASE_CYCLING_NONE
+                                        0x04 => 2, # PHASE_CYCLING_TWOSTEP
+                                        0x08 => 8, # PHASE_CYCLING_EIGHTSTEP
+                                        0x10 => 4, # PHASE_CYCLING_EXORCYCLE
+                                        0x20 => 16)# PHASE_CYCLING_SIXTEENSTEP_EXOR
+        if haskey(phase_cycle_types, twix.metadata["sSpecPara.lPhaseCyclingType"])
+            n_cycles = phase_cycle_types[twix.metadata["sSpecPara.lPhaseCyclingType"]]
+        elseif twix.metadata["sSpecPara.lPhaseCyclingType"] == 0x02 # PHASE_CYCLING_AUTO (Default)
+            # As per the source code, this mode sets the cycling automatically, which can be computed
+            # by longest phase cycle possible from the other phase cycling types, starting from 2 steps
+            sorted_step = sort([v for v in phase_cycle_types.vals if v > 0], rev=true)
+            for s in sorted_step
+                if num_averages%s == 0
+                    n_cycles = s
+                    break
+                end
+            end
+        end
+        TE = get(twix.metadata,"alTE[0]", missing)u"μs"
+
+        if ismissing(TE)
+            throw(MissingError("TE not found in PRESS sequence"))
+        end
+        # Extract ref_scans and press_scans
+        has_refscans = get(twix.metadata, "sSpecPara.lAutoRefScanMode", 1) != AUTO_REF_SCAN_OFF
+        if !has_refscans
+            @warn """
+                  The auto ref scan mode is turned off.
+                  This feature has not been tested, please use with caution
+                  """
+        end
+
+        ref_scans = Int[]
+        press_scans = zeros(Int, Int(num_averages/n_cycles), n_cycles)
+        navigator = Int[]
+
+        # Loop through twix data and check the phase loop counter
+        # if phase loop counter = 0, it's a ref scan
+        # else if phase loop counter = 1, it's water suppressed scan
+        for (i,acq) in enumerate(twix.data)
+            if !has_refscans && acq.loop_counters.phase != 0
+                @warn """
+                      Phase loop is nonzero but AutoRefScanMode is OFF.
+                      I don't know what to do with this acquisition!
+                      """
+                continue
+            end
+            is_refscan = has_refscans && acq.loop_counters.phase == 0
+            if acq.rt_feedback
+                push!(navigator, i)
+                continue
+            elseif is_refscan
+                push!(ref_scans, i)
+                continue
+            end
+
+            avg_index           = acq.loop_counters.acquisition % n_cycles + 1
+            cycle_no            = Int(floor(acq.loop_counters.acquisition/n_cycles) + 1)
+            press_scans[cycle_no, avg_index] = i
+        end
+        return PRESS(meta, ref_scans, press_scans, navigator, twix)
     end
 
     error("Siemens raw data with sequence \"$(meta.sequence_name)\" is unrecognized")
