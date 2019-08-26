@@ -365,16 +365,7 @@ function dump_twix_headers(filename, dump_dir; meas_selector=last)
     end
 end
 
-function read_zero_packed_string(io, N)
-    data = read(io, N)
-    firstnull = findfirst(data .== 0)
-    strend = firstnull==nothing ? length(data) : firstnull-1
-    String(data[1:strend])
-end
-
-
-# The following is inspired by the twix reader in suspect.py.
-function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
+function read_meas_headers(io)
     twix_id, num_measurements = read(io, SVector{2,Int32})
     # vd file can contain multiple measurements, but we only want the MRS.
     # Assume that the MRS is the last measurement.
@@ -384,8 +375,8 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
     for i=1:num_measurements
         meas_uid, file_id = read(io, SVector{2,Int32})
         meas_offset, meas_length = read(io, SVector{2,Int64})
-        patient_name = read_zero_packed_string(io, 64)
-        protocol_name = read_zero_packed_string(io, 64)
+        patient_name = read(io, FixedString{64})
+        protocol_name = read(io, FixedString{64})
         @debug "Reading TWIX VD Header"   #=
             =# meas_uid file_id           #=
             =# meas_offset meas_length    #=
@@ -395,6 +386,12 @@ function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
                meas_offset=meas_offset, meas_length=meas_length,
                patient_name=patient_name, protocol_name=protocol_name))
     end
+    return twix_id, num_measurements, measurement_data
+end
+
+# The following is inspired by the twix reader in suspect.py.
+function load_twix_vd(io, header_only, acquisition_filter, meas_selector)
+    twix_id, num_measurements, measurement_data = read_meas_headers(io)
     meas_header = meas_selector(measurement_data)
 
     seek(io, meas_header.meas_offset)
