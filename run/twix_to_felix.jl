@@ -6,8 +6,9 @@ using Unitful
 using AxisArrays
 
 # TODO: Move the signal processing parts (at least!) into src!
-function twix_to_felix(twixname, felixname)
-    spectro = mr_load(twixname)
+function twix_to_felix(twixname, felixname; repair=false)
+    twix = load_twix(twixname)
+    spectro = mr_load(twix; repair=repair)
     @info "Opened data file" twixname spectro
 
     signal = simple_averaging(spectro, downsample=2)
@@ -27,24 +28,26 @@ using ArgParse
 
 argdef = ArgParseSettings(exc_handler=isinteractive() ? ArgParse.debug_handler : ArgParse.default_handler)
 @add_arg_table argdef begin
+    "--repair"
+        help = "Attempt to repair a partially complete LCOSY sequence"
+        action = :store_true
     "in_file"
         help = "path to the input twix file (Siemens meas_*.dat RAID format)"
         required = true
     "out_file"
-        help = "path to the output file (Felix .dat format). By default, this will be derived from the path of the input."
+        help = "path to the output file (Felix .dat format)."
+        required = true
 end
 
 function process_args(argvec)
     parsed_args = parse_args(argvec, argdef)
 
     in_file = parsed_args["in_file"]
-    out_file = parsed_args["out_file"] !== nothing ?
-               parsed_args["out_file"] :
-               joinpath(dirname(in_file), "felix_"*splitext(basename(in_file))[1]*".dat")
+    out_file = parsed_args["out_file"]
 
-    (in_file=in_file, out_file=out_file)
+    (in_file=in_file, out_file=out_file, repair=parsed_args["repair"])
 end
 
 
 args = process_args(ARGS)
-twix_to_felix(args.in_file, args.out_file)
+twix_to_felix(args.in_file, args.out_file, repair=args.repair)

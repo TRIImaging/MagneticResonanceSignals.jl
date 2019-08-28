@@ -727,13 +727,16 @@ end
 
 
 """
-    mr_load(twix::MRExperiment)
+    mr_load(twix::MRExperiment, repair=false)
+
+If `repair=true`, attempt to repair the experiment by discarding a subset of
+broken acquisitions where possible.
 
 Recognizes spectro experiments in Siemens twix format, producing one of:
-  * LCOSY
-  * PRESS (TODO)
+  * PRESS (Siemens product sequence SVS_SE)
+  * LCOSY (Customer sequencese srcosy,svs_lcosy)
 """
-function mr_load(twix::MRExperiment)
+function mr_load(twix::MRExperiment; repair=false)
     @debug "Recognizing twix input" twix
 
     meta = standard_metadata(twix)
@@ -836,8 +839,18 @@ function mr_load(twix::MRExperiment)
         end
 
         if any(lcosy_scans .== 0)
-            nmissing = length(findall(lcosy_scans .== 0))
-            error("Missing increments or averages in L-COSY scan ($nmissing of $(length(lcosy_scans)))")
+            bad_t1_incs = vec(any(lcosy_scans .== 0, dims=1))
+            if repair && AcquisitionsIncomplete in twix.quality_control
+                first_bad_avg = findfirst(bad_t1_incs)
+                nsamp_t1 = first_bad_avg-1
+                @warn """Attempting to repair LCOSY by discarding trailing T1 increment(s):
+                          lcosy_scans[:, $first_bad_avg:$(lastindex(lcosy_scans,2))]
+                      """
+                lcosy_scans = lcosy_scans[:,1:first_bad_avg-1]
+            else
+                nmissing = length(findall(lcosy_scans .== 0))
+                error("Missing increments or averages in L-COSY scan ($nmissing of $(length(lcosy_scans)))")
+            end
         end
 
         t1 = (0:nsamp_t1-1)*dt1
