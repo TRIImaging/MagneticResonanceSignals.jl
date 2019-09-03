@@ -12,6 +12,7 @@ using LinearAlgebra
 
 # Plotting
 using RecipesBase
+using UnitfulRecipes
 using Colors
 
 include("core.jl")
