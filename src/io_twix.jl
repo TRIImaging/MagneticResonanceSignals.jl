@@ -235,9 +235,12 @@ function standard_metadata(expt::MRExperiment)
     protname = get(expt.metadata, "tProtocolName", missing)
     seqname = get(expt.metadata, "tSequenceFileName", missing)
     frequency = get(expt.metadata, "sTXSPEC.asNucleusInfo[0].lFrequency",missing)*u"Hz"
+    device_id = ("Siemens",
+                 get(expt.metadata, "Dicom.ManufacturersModelName", missing),
+                 get(expt.metadata, "Dicom.DeviceSerialNumber", missing))
     epoch = ref_epoch(expt)
     version = software_version(expt)
-    MRMetadata(protname, seqname, version, epoch, frequency)
+    MRMetadata(protname, seqname, version, device_id, epoch, frequency)
 end
 
 """
@@ -260,6 +263,7 @@ function Base.show(io::IO, expt::MRExperiment)
             Protocol           = $(meta.protocol_name)
             Sequence File Name = $(meta.sequence_name)
             Software Version   = $(meta.software_version)
+            Device Id          = $(meta.device_id)
             Reference Date     = $(meta.ref_epoch)
             Frequency          = $(meta.frequency)
             Coils              = $(unique([c.coil_id for c in expt.coils]))

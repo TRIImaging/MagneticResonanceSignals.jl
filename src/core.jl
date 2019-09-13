@@ -16,6 +16,7 @@ struct MRMetadata
     protocol_name    # Name of sequence parameter set
     sequence_name    # Name of MR sequence code
     software_version # Version of spectrometer software
+    device_id        # Device identifier: (manufacturer, model_name, serial)
     ref_epoch        # Epoch of localizer image
     frequency        # Spectrometer frequency (TODO: or frequencies for MNO?)
 end
