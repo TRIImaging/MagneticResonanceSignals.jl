@@ -221,8 +221,13 @@ end
 Extract scanner software version from experiment metadata
 """
 function software_version(expt::MRExperiment)
-    get(expt.metadata, "sProtConsistencyInfo.tBaselineString") do
-        get(expt.metadata, "sProtConsistencyInfo.tMeasuredBaselineString", missing)
+    m = expt.metadata
+    get(m, "sProtConsistencyInfo.tBaselineString") do
+        get(m, "sProtConsistencyInfo.tMeasuredBaselineString") do
+            # On Numaris NX, detailed software version info seems missing from
+            # twix, or at least it's not clear how to get it :-(
+            get(m, "Dicom.SoftwareVersions", missing)
+        end
     end
 end
 
