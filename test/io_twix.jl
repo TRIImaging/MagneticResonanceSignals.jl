@@ -12,6 +12,7 @@
           Protocol           = svs_lcosy
           Sequence File Name = %CustomerSeq%\\svs_lcosy
           Software Version   = N4_VE11C_LATEST_20160120
+          Device Id          = ("Siemens", "Prisma", "166042")
           Reference Date     = 2018-11-27T12:22:52
           Frequency          = 123255189 Hz
           Coils              = ["HeadNeck_64"]
@@ -36,6 +37,7 @@ end
           Protocol           = svs_se-ref-1_avg-1
           Sequence File Name = %SiemensSeq%\\svs_se
           Software Version   = N4_VE11C_LATEST_20160120
+          Device Id          = ("Siemens", "Prisma", "166042")
           Reference Date     = 2019-08-22T15:00:28
           Frequency          = 123254849 Hz
           Coils              = ["HeadNeck_64"]
@@ -65,6 +67,7 @@ end
           Protocol           = svs_se-ref-1_avg-2
           Sequence File Name = %SiemensSeq%\\svs_se
           Software Version   = N4_VE11C_LATEST_20160120
+          Device Id          = ("Siemens", "Prisma", "166042")
           Reference Date     = 2019-08-22T15:00:28
           Frequency          = 123254849 Hz
           Coils              = ["HeadNeck_64"]

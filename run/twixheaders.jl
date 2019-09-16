@@ -2,9 +2,23 @@
 
 # Script to extract twix headers into a new temporary directory
 
-using TriMRS
+using ArgParse
 
-twix=ARGS[1]
-tmpdir = mktempdir(joinpath(homedir(), "tmp"))
-TriMRS.dump_twix_headers(twix, tmpdir)
-println(tmpdir)
+argdef = ArgParseSettings(exc_handler=isinteractive() ? ArgParse.debug_handler : ArgParse.default_handler)
+@add_arg_table argdef begin
+    "in_file"
+        help = "path to the input twix file (Siemens meas_*.dat RAID format)"
+        required = true
+    "out_dir"
+        help = "path to the output directory"
+        required = true
+end
+
+parsed_args = parse_args(ARGS, argdef)
+
+using TriMRS
+out_dir = parsed_args["out_dir"]
+if !isdir(out_dir)
+    mkpath(out_dir)
+end
+TriMRS.dump_twix_headers(parsed_args["in_file"], out_dir)
