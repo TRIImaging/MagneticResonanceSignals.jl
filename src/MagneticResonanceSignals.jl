@@ -31,6 +31,7 @@ include("MRAxis.jl")
 
 include("coil_combination.jl")
 include("processing.jl")
+include("hsvd.jl")
 
 include("windows.jl")
 include("plotting.jl")
