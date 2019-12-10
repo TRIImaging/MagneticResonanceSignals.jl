@@ -14,9 +14,29 @@ struct PRESS
 
     # Raw acquisitions
     acquisitions
+
+    cycle_length
 end
 
 standard_metadata(p::PRESS) = standard_metadata(p.acquisitions)
+count_cycles(p::PRESS) = count_cycles(p.acquisitions)
+
+function PRESS(
+    echo_time,
+    ref_scans::Vector{Int},
+    press_scans::Matrix{Int},
+    navigator::Vector{Int},
+    acquisitions
+)
+    PRESS(
+        echo_time,
+        ref_scans,
+        press_scans,
+        navigator,
+        acquisitions,
+        count_cycles(acquisitions)
+    )
+end
 
 function Base.show(io::IO, press::PRESS)
     println(io, """

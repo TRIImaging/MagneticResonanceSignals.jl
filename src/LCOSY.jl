@@ -13,9 +13,19 @@ struct LCOSY
 
     # Raw acquisitions
     acquisitions
+
+    cycle_length
 end
 
 standard_metadata(l::LCOSY) = standard_metadata(l.acquisitions)
+
+function LCOSY(
+  t1, echo_time, ref_scans::Vector{Int}, lcosy_scans::Matrix{Int}, acquisitions
+)
+    LCOSY(
+        t1, echo_time, ref_scans, lcosy_scans, acquisitions, count_cycles(acquisitions)
+    )
+end
 
 function Base.show(io::IO, lcosy::LCOSY)
     println(io, """
@@ -26,13 +36,12 @@ function Base.show(io::IO, lcosy::LCOSY)
     show(io, lcosy.acquisitions)
 end
 
-
 """
-    simple_averaging(spectro_expt)
+    extract_fids(lcosy::LCOSY; downsample=1)
 
-Simple channel combination and averaging for spectroscopic data acquisition.
+Extract raw fid from LCOSY experiment and apply channel combination
 """
-function simple_averaging(lcosy::LCOSY; downsample=1)
+function extract_fids(lcosy::LCOSY; downsample=1)
     acqs = lcosy.acquisitions
     # Use reference scans if possible to figure out channel combination
     # weights; if not, use the actual data (which has worse SNR because it's
@@ -49,16 +58,39 @@ function simple_averaging(lcosy::LCOSY; downsample=1)
     t2 = AxisArrays.axes(fid1, Axis{:time}).val
 
     num_averages = size(lcosy.lcosy_scans, 1)
-    nsamp_t1 = size(lcosy.lcosy_scans, 2)
-    signal = AxisArray(zeros(eltype(fid1), length(t2), nsamp_t1),
-                       Axis{:time2}(t2), Axis{:time1}(lcosy.t1))
-    for i=1:nsamp_t1
-        scans_for_avg = lcosy.lcosy_scans[:,i]
-        fid = mean(combiner.(sampledata.(Ref(acqs), scans_for_avg, downsample=downsample)))
-        signal[:,i] = fid
-    end
+    phase_cycle = mod1.(1:num_averages, lcosy.cycle_length)
 
+    nsamp_t1 = size(lcosy.lcosy_scans, 2)
+    signal = AxisArray(zeros(eltype(fid1), length(t2), num_averages, nsamp_t1),
+                       Axis{:time2}(t2),
+                       Axis{:phase_cycle}(phase_cycle),
+                       Axis{:time1}(lcosy.t1))
+    for i=1:nsamp_t1
+        for j=1:num_averages
+            fid = combiner(sampledata(acqs, lcosy.lcosy_scans[j,i], downsample=downsample))
+            signal[:,j,i] = fid
+        end
+    end
     signal
+end
+
+"""
+    simple_averaging(spectro_expt)
+
+Simple channel combination and averaging for spectroscopic data acquisition.
+
+Note that this uses a simple mean to combine acquisitions across the phase
+cycling dimension; it does no frequency alignment or other calibration.
+"""
+function simple_averaging(lcosy::LCOSY; downsample=1)
+    fids = extract_fids(lcosy, downsample=downsample)
+    averaged_signal = similar(fids[:,1,:], Complex{Float64})
+    for i=1:size(fids,1)
+        for j=1:size(fids,3)
+            averaged_signal[i,j] = mean(fids[i,:,j])
+        end
+    end
+    averaged_signal
 end
 
 
