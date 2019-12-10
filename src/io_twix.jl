@@ -734,6 +734,27 @@ function sampledata(expt, index; downsample=1)
     AxisArray(z, Axis{:time}(t), Axis{:channel}(coilsyms))
 end
 
+"""
+    count_cycles(twix::MRExperiment)
+
+Get phase cycle length for Siemens twix.
+"""
+function count_cycles(twix::MRExperiment)
+    num_averages = twix.metadata["lAverages"]
+    phase_cycle_types = OrderedDict(0x01 => 1, # PHASE_CYCLING_NONE
+                                    0x04 => 2, # PHASE_CYCLING_TWOSTEP
+                                    0x08 => 8, # PHASE_CYCLING_EIGHTSTEP
+                                    0x10 => 4, # PHASE_CYCLING_EXORCYCLE
+                                    0x20 => 16)# PHASE_CYCLING_SIXTEENSTEP_EXOR
+    if haskey(phase_cycle_types, twix.metadata["sSpecPara.lPhaseCyclingType"])
+        n_cycles = phase_cycle_types[twix.metadata["sSpecPara.lPhaseCyclingType"]]
+    elseif twix.metadata["sSpecPara.lPhaseCyclingType"] == 0x02 # PHASE_CYCLING_AUTO (Default)
+        # As per the source code, this mode sets the cycling automatically, which can be computed
+        # by longest phase cycle possible from the other phase cycling types, starting from 2 steps
+        n_cycles = maximum(c for c in values(phase_cycle_types) if num_averages % c == 0)
+    end
+    n_cycles
+end
 
 """
     mr_load(twix::MRExperiment, repair=false)
@@ -756,6 +777,7 @@ function mr_load(twix::MRExperiment; repair=false)
     is_srcosy    = occursin("srcosy", meta.sequence_name) ||
                    occursin("sr_cosy", meta.sequence_name)
     is_press     = "%SiemensSeq%\\svs_se" == meta.sequence_name
+    num_averages = twix.metadata["lAverages"]
     if is_svs_lcosy || is_srcosy
         release_versions = ["%CustomerSeq%\\srcosy",
                             "%CustomerSeq%\\sr_cosy",
@@ -768,8 +790,6 @@ function mr_load(twix::MRExperiment; repair=false)
                   the sequence you might get strange results.
                   """  meta.sequence_name twix
         end
-
-        num_averages = twix.metadata["lAverages"]
 
         t1_inc_loop_idx = 0
 
@@ -865,25 +885,7 @@ function mr_load(twix::MRExperiment; repair=false)
         t1 = (0:nsamp_t1-1)*dt1
         return LCOSY(t1, meta, ref_scans, lcosy_scans, twix)
     elseif is_press
-        num_averages = twix.metadata["lAverages"]
-        phase_cycle_types = OrderedDict(0x01 => 1, # PHASE_CYCLING_NONE
-                                        0x04 => 2, # PHASE_CYCLING_TWOSTEP
-                                        0x08 => 8, # PHASE_CYCLING_EIGHTSTEP
-                                        0x10 => 4, # PHASE_CYCLING_EXORCYCLE
-                                        0x20 => 16)# PHASE_CYCLING_SIXTEENSTEP_EXOR
-        if haskey(phase_cycle_types, twix.metadata["sSpecPara.lPhaseCyclingType"])
-            n_cycles = phase_cycle_types[twix.metadata["sSpecPara.lPhaseCyclingType"]]
-        elseif twix.metadata["sSpecPara.lPhaseCyclingType"] == 0x02 # PHASE_CYCLING_AUTO (Default)
-            # As per the source code, this mode sets the cycling automatically, which can be computed
-            # by longest phase cycle possible from the other phase cycling types, starting from 2 steps
-            sorted_step = sort([v for v in phase_cycle_types.vals if v > 0], rev=true)
-            for s in sorted_step
-                if num_averages%s == 0
-                    n_cycles = s
-                    break
-                end
-            end
-        end
+        n_cycles = count_cycles(twix)
         TE = get(twix.metadata,"alTE[0]", missing)u"μs"
 
         if ismissing(TE)

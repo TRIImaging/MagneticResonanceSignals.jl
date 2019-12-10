@@ -42,7 +42,8 @@ export
     standard_metadata,
     scanner_time,
     mr_load,
-    sampledata
+    sampledata,
+    count_cycles
 
 # IO
 export load_rda,
@@ -76,6 +77,8 @@ export
 
 # High level signal processing
 export
+    # Raw FIDs
+    extract_fids,
     # Averaging of repeats
     simple_averaging,
     # Fourier transform
