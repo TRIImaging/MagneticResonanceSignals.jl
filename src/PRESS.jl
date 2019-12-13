@@ -19,7 +19,6 @@ struct PRESS
 end
 
 standard_metadata(p::PRESS) = standard_metadata(p.acquisitions)
-count_cycles(p::PRESS) = count_cycles(p.acquisitions)
 
 function PRESS(
     echo_time,
