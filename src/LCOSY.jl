@@ -84,13 +84,7 @@ cycling dimension; it does no frequency alignment or other calibration.
 """
 function simple_averaging(lcosy::LCOSY; downsample=1)
     fids = extract_fids(lcosy, downsample=downsample)
-    averaged_signal = similar(fids[:,1,:], Complex{Float64})
-    for i=1:size(fids,1)
-        for j=1:size(fids,3)
-            averaged_signal[i,j] = mean(fids[i,:,j])
-        end
-    end
-    averaged_signal
+    simple_averaging(fids)
 end
 
 

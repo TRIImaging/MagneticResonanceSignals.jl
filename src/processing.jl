@@ -22,6 +22,16 @@ function zeropad(signal::AxisArray, axis=Axis{:time}, pad=2)
 end
 
 """
+    simple_averaging(fids)
+
+Do simple averaging from FIDs
+"""
+function simple_averaging(fids::AxisArray)
+    d = axisdim(fids, Axis{:phase_cycle})
+    averaged_signal = dropdims(mean(fids, dims=d), dims=d)
+end
+
+"""
     spectrum(signal::AxisArray)
 
 Compute the spectrum from time domain signal via Fourier Transform.
@@ -59,7 +69,7 @@ function downsample_and_truncate(t, z, cutpre, cutpost, downsample)
         cutpre  = Int(cutpre/downsample)
         cutpost = Int(cutpost/downsample)
     end
-    # Add descriptive axes to the array and remove 
+    # Add descriptive axes to the array and remove
     t[cutpre+1:end-cutpost], z[cutpre+1:end-cutpost,:]
 end
 
