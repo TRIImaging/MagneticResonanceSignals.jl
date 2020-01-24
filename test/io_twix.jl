@@ -86,7 +86,7 @@ end
 @testset "twix quality control" begin
     twix = @test_logs (Logging.Warn,r"Unexpected empty meas packet") #=
                =# load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_incomplete.twix")
-    @test TriMRS.AcquisitionsIncomplete in twix.quality_control
+    @test MagneticResonanceSignals.AcquisitionsIncomplete in twix.quality_control
 
     valid_twix_bytes = read("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
 
@@ -94,13 +94,13 @@ end
     partially_zeroed_twix[0x69:end] .= 0
     twix = @test_logs (Logging.Warn,r"Unexpected empty measurement header sections") match_mode=:any #=
         =# load_twix(IOBuffer(partially_zeroed_twix))
-    @test TriMRS.MeasHeaderEmpty in twix.quality_control
+    @test MagneticResonanceSignals.MeasHeaderEmpty in twix.quality_control
 
     truncated_twix = copy(valid_twix_bytes)
     truncated_twix = truncated_twix[1:900_000]
     twix = @test_logs (Logging.Warn,r"Twix acquisition truncated at position 900000") #=
         =# load_twix(IOBuffer(truncated_twix))
-    @test TriMRS.AcquisitionsIncomplete in twix.quality_control
+    @test MagneticResonanceSignals.AcquisitionsIncomplete in twix.quality_control
 end
 
 @testset "metadata parsing" begin
@@ -147,9 +147,9 @@ end
 
 
 @testset "coil select parsing" begin
-    yaps_dict = TriMRS.parse_header_yaps(String(read("twix/PRESS_TE135_Breast_Coil_Headers/MeasYaps")))
+    yaps_dict = MagneticResonanceSignals.parse_header_yaps(String(read("twix/PRESS_TE135_Breast_Coil_Headers/MeasYaps")))
     @test length(@test_logs((:warn, "Could not find some metadata for coil 7"),
-                            TriMRS.parse_yaps_rx_coil_selection(yaps_dict))) == 7
+                            MagneticResonanceSignals.parse_yaps_rx_coil_selection(yaps_dict))) == 7
 end
 
 

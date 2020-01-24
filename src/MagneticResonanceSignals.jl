@@ -1,4 +1,4 @@
-module TriMRS
+module MagneticResonanceSignals
 
 using StaticArrays
 using DataStructures
@@ -88,12 +88,10 @@ export
 export
     felix_colors
 
-@deprecate load_twix_raw load_twix
-
 const _local_basefactors = Unitful.basefactors
 
 function __init__()
-    Unitful.register(TriMRS)
+    Unitful.register(MagneticResonanceSignals)
     merge!(Unitful.basefactors, _local_basefactors)
 end
 

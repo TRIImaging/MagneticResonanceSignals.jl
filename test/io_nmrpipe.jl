@@ -1,5 +1,5 @@
-using Unitful, TriMRS, Test
-using TriMRS: FixedString
+using Unitful, MagneticResonanceSignals, Test
+using MagneticResonanceSignals: FixedString
 using AxisArrays
 
 @testset "NMRPipe format IO" begin

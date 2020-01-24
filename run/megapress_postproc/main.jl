@@ -1,5 +1,5 @@
 using ArgParse
-using TriMRS
+using MagneticResonanceSignals
 
 function rda_diff(in1file, in2file, outfile; anonymize=true)
     in1header,in1data = load_rda(in1file)

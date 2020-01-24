@@ -1,4 +1,4 @@
-using TriMRS: FixedString
+using MagneticResonanceSignals: FixedString
 
 @testset "FixedString" begin
     # Constructor

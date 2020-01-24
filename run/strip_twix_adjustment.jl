@@ -1,10 +1,10 @@
-using TriMRS
+using MagneticResonanceSignals
 using StaticArrays
 
 function strip_twix_adjustment(in_file, out_file)
     open(in_file, "r") do src
         open(out_file, "w") do dest
-            twix_id, num_measurements, mdata = TriMRS.read_meas_headers(src)
+            twix_id, num_measurements, mdata = MagneticResonanceSignals.read_meas_headers(src)
 
             # Create temp buffer
             buf = IOBuffer()
@@ -41,7 +41,7 @@ using ArgParse
 argdef = ArgParseSettings(exc_handler=isinteractive() ? ArgParse.debug_handler : ArgParse.default_handler,
                           prog="Twix Adjustment Remover",
                           description="""
-                            Small program to remove adjustment data on Siemens twix, which relies heavily on TriMRS.
+                            Small program to remove adjustment data on Siemens twix, which relies heavily on MagneticResonanceSignals.
                             This program will take the in_file and write the no adjustment twix in out_file.
                             """)
 @add_arg_table argdef begin

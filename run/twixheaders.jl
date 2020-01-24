@@ -16,9 +16,9 @@ end
 
 parsed_args = parse_args(ARGS, argdef)
 
-using TriMRS
+using MagneticResonanceSignals
 out_dir = parsed_args["out_dir"]
 if !isdir(out_dir)
     mkpath(out_dir)
 end
-TriMRS.dump_twix_headers(parsed_args["in_file"], out_dir)
+MagneticResonanceSignals.dump_twix_headers(parsed_args["in_file"], out_dir)

@@ -30,7 +30,7 @@ struct LoopCounters <: FieldVector{14, UInt16}
     ide::UInt16
 end
 
-loop_counter_index(name) = findfirst(isequal(name), fieldnames(TriMRS.LoopCounters))::Int
+loop_counter_index(name) = findfirst(isequal(name), fieldnames(MagneticResonanceSignals.LoopCounters))::Int
 
 
 """

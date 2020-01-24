@@ -1,5 +1,5 @@
-name = "TriMRS"
-uuid = "9da901aa-ab15-53db-a151-0fdc1ff1ff41"
+name = "MagneticResonanceSignals"
+uuid = "78eec104-8e80-495a-a1ef-01a2a2eeabab"
 version = "0.1.0"
 
 [deps]

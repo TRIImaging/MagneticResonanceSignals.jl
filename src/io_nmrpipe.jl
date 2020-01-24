@@ -191,13 +191,14 @@ end
 """
     save_nmrpipe(io, signal, axes; frequency, ref_freq_offset)
 
-Convert twix into NMR Pipe format to be loaded into third party analytical software, such as mestrenova. This currently supports up to 2 dimension.
+Convert twix into NMR Pipe format to be loaded into third party analytical
+software, such as MNova. This currently supports up to 2 dimension.
 
 At minimal, for each dimension we should have:
 - Signal data
 - Axes
 - Observation frequency (frequency)
-- Carier frequency (ref_freq_offset)
+- Carrier frequency (`ref_freq_offset`)
 
 `ref_freq_offset` is a tuple containing the relative frequency offset between
 obs_freq and frequency which will be set to 0 on the ppm scale.

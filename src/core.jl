@@ -2,7 +2,7 @@
 
 @unit ppm "ppm" PartsPerMillion 1//1000000 false
 
-Unitful.register(TriMRS)
+Unitful.register(MagneticResonanceSignals)
 
 """
 4.7 is a chosen nominal chemical shift of water relative to TMS.  Note that

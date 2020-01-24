@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using TriMRS
+using MagneticResonanceSignals
 using Statistics
 using Unitful
 using AxisArrays

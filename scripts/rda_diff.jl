@@ -4,7 +4,7 @@
 
 using DataStructures
 
-# Copied from TriMRS
+# Copied from MagneticResonanceSignals
 """
     load_rda(rda_file)
 
