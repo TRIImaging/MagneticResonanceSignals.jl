@@ -1,4 +1,8 @@
-#!/usr/bin/env julia
+#!/bin/bash
+#=
+exec julia --project=. -e 'include(popfirst!(ARGS))' \
+    "${BASH_SOURCE[0]}" "$@"
+=#
 
 using MagneticResonanceSignals
 using Statistics

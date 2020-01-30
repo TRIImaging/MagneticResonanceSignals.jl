@@ -1,4 +1,8 @@
-#!/usr/bin/env julia
+#!/bin/bash
+#=
+exec julia --project=. -e 'include(popfirst!(ARGS))' \
+    "${BASH_SOURCE[0]}" "$@"
+=#
 
 # Script to extract twix headers into a new temporary directory
 
