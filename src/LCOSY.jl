@@ -1,7 +1,3 @@
-"""
-A standard L-COSY experiment with (num_averages × nsamp_t1) acquisitions,
-possibly with reference scans included.
-"""
 struct LCOSY
     # Metadata
     t1          # Indirect time axis
@@ -19,6 +15,18 @@ end
 
 standard_metadata(l::LCOSY) = standard_metadata(l.acquisitions)
 
+"""
+An L-COSY experiment with (`num_averages` × `nsamp_t1`) acquisitions, possibly
+with reference scans included.
+
+The L-COSY pulse sequence is described in:
+
+* Thomas, M. Albert, et al. "Localized two‐dimensional shift correlated MR
+  spectroscopy of human brain." Magnetic Resonance in Medicine 46.1 (2001): 58-67.
+* Thomas, M. Albert, et al. "Evaluation of two‐dimensional L‐COSY and JPRESS
+  using a 3 T MRI scanner: from phantoms to human brain in vivo." NMR in
+  Biomedicine 16.5 (2003): 245-251.
+"""
 function LCOSY(
   t1, echo_time, ref_scans::Vector{Int}, lcosy_scans::Matrix{Int}, acquisitions
 )

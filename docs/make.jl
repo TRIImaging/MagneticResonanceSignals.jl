@@ -4,7 +4,9 @@ makedocs(;
     modules=[MagneticResonanceSignals],
     format=Documenter.HTML(),
     pages=[
-        "Home" => "index.md",
+        "Overview" => "index.md",
+        "How-to Guide" => "guide.md",
+        "Reference" => "reference.md",
     ],
     repo="https://github.com/TRIImaging/MagneticResonanceSignals.jl/blob/{commit}{path}#L{line}",
     sitename="MagneticResonanceSignals.jl",

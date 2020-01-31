@@ -102,7 +102,8 @@ useful to be able to parse apparently incomplete or partially corrupt raw data.
 
 Flags include:
 
-* AcquisitionsIncomplete - the acquisition list appeared to be truncated
+* `AcquisitionsIncomplete` - the acquisition list appeared to be truncated
+* `MeasHeaderEmpty` - the measurement was empty (likely due to a cancelled measurement)
 """
 @enum DataStatus AcquisitionsIncomplete MeasHeaderEmpty
 
@@ -150,7 +151,8 @@ end
 
 Container for data from a generic magnetic resonance experiment: a series of
 `Acquisition`s, each of which records the coil response due to induced nuclear
-magnetization.
+magnetization. This is currently specialized for the type of raw data produced
+by a Siemens scanner but could be generalized.
 
 Note that the input pulse sequence is not recorded in Siemens raw format, so
 it's not available here. The only way to know this in full detail is to

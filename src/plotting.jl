@@ -47,6 +47,10 @@ end
 
 # Color map similar to the one which comes with Felix NMR
 const RGBN0f8 = RGB{Colors.N0f8}
+
+"""
+A popular color map for multidimensional NMR data as defined in Felix NMR
+"""
 const felix_colors = [
     RGBN0f8(0.0,0.0,1.0)  ,
     RGBN0f8(0.063,0.0,1.0),

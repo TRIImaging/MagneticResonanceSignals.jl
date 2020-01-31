@@ -1,7 +1,3 @@
-"""
-A standard PRESS experiment with num_averages acquisitions,
-possibly with navigator and reference scans included.
-"""
 struct PRESS
     # Metadata
     echo_time # Echo time
@@ -20,6 +16,13 @@ end
 
 standard_metadata(p::PRESS) = standard_metadata(p.acquisitions)
 
+"""
+A standard Point Resolved Spectroscopy (PRESS) experiment with `num_averages`
+acquisitions, possibly with navigator and reference scans included.
+
+This is implemented as "single voxel spectroscopy" and is the standard product
+sequence for in vivo MR spectroscopy on Siemens scanners as of early 2020.
+"""
 function PRESS(
     echo_time,
     ref_scans::Vector{Int},
