@@ -1,6 +1,6 @@
 # How-to Guide
 
-## Loading file data
+## APIs for loading file data
 
 Raw data:
 
@@ -24,7 +24,44 @@ Spectroscopy:
 
 ## Converting Siemens raw data to Felix format
 
-TODO
+The tool in `run/twix_to_felix.jl` can be used to convert Siemens raw MR "twix"
+data into a format usable by the Felix NMR processing software.
+
+For example, to convert an raw file `meas_MID00069_FID104801_test.dat` into the
+felix file `meas_MID00069_FID104801_felix.dat`, you can use the following
+commands.  Note that (confusingly!) both Siemens raw data files and Felix input
+files have the .dat extension by convention.
+
+
+```
+run/twix_to_felix.jl  meas_MID00069_FID104801_test.dat  meas_MID00069_FID104801_felix.dat
+```
+
+On windows, you may need to run from the cmd.exe prompt and specify the path to
+julia:
+
+```
+cd run
+C:\path\to\julia.exe twix_to_felix.jl meas_MID00069_FID104801_test.dat  meas_MID00069_FID104801_felix.dat
+```
+
+
+## Removing unnecessary adjustment data from Siemens raw data
+
+When saving raw data from a Siemens sequence with the twix program, the
+adjustment data is sometimes included (depending on the export settings).
+
+Depending on the scanner settings this may include phase maps and other
+sequence data which can add up to several hundred megabytes of unnecessary
+data.
+
+The script `strip_twix_adjustment.jl` is a small program to remove such
+adjustment data from Siemens twix to reduce the file size. For example, to
+convert `meas.dat` into `meas_stripped.dat`, use
+
+```
+$ julia --project=run run/strip_twix_adjustment.jl meas.dat meas_stripped.dat
+```
 
 ## Processing 2D L-COSY spectroscopy
 

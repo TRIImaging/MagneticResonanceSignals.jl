@@ -766,7 +766,7 @@ broken acquisitions where possible.
 
 Recognizes spectro experiments in Siemens twix format, producing one of:
   * PRESS (Siemens product sequence SVS_SE)
-  * LCOSY (Customer sequencese srcosy,svs_lcosy)
+  * L-COSY (Customer sequences srcosy, svs_lcosy)
 """
 function mr_load(twix::MRExperiment; repair=false)
     @debug "Recognizing twix input" twix
