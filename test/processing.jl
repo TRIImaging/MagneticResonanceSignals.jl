@@ -34,11 +34,17 @@ end
     # channel combination is done.
     #
     # If this test breaks, check channel combination first.
-    @test signal[1,1] ≈ 7.738674959726887e-7 - 3.6804266388552964e-6im
+    #
+    # Note that we check this in float32 precision, because part of the signal
+    # processing is done there. In particular, reduction order in sum()/mean()
+    # is implementation defined, so there can be some 1ULP or so difference in
+    # simple_averaging() which are system-dependent and cause the tests to be
+    # unreliable.
+    @test signal[1,1] ≈ 7.738675f-7 - 3.6804267f-6im
 
     signal = simple_averaging(lcosy, downsample=2)
     @test size(signal) == (1024,1)
     # See comment above regarding channel combination.
-    @test signal[1,1] ≈ 5.9181230855718945e-6 - 3.929549012629214e-6im
+    @test signal[1,1] ≈ 5.918123f-6 - 3.929549f-6im
 end
 
