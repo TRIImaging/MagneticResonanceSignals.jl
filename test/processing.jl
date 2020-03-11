@@ -48,3 +48,27 @@ end
     @test signal[1,1] ≈ 5.918123f-6 - 3.929549f-6im
 end
 
+@testset "press" begin
+    press = mr_load("twix/sub-SiemensBrainPhantom_seq-svsse_ref-1_avg-1.twix")
+
+    signal = simple_averaging(press)
+    @test size(signal) == (2048,)
+    @test axisnames(signal) == (:time,)
+
+    # NB: The value of signal[1,1] here is very sensitive to the detail of how
+    # channel combination is done.
+    #
+    # If this test breaks, check channel combination first.
+    #
+    # Note that we check this in float32 precision, because part of the signal
+    # processing is done there. In particular, reduction order in sum()/mean()
+    # is implementation defined, so there can be some 1ULP or so difference in
+    # simple_averaging() which are system-dependent and cause the tests to be
+    # unreliable.
+    @test signal[1] ≈ 1.285736325932893e-5 - 6.254529717934169e-6im
+
+    signal = simple_averaging(press, downsample=2)
+    @test size(signal) == (1024,)
+    # See comment above regarding channel combination.
+    @test signal[1] ≈ 1.0124327396397095e-5 - 5.623437539355392e-6im
+end

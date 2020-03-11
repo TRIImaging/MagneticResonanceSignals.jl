@@ -58,13 +58,12 @@ end
 
 
 """
-Use HSVD to suppress a spectral region.
+    function hsvd_water_suppression(fid; dt = 0.0008, water_center_freq=0.0,
+                                    bandwidth=100.0, hsvd_rank=50)
 
-This is rather a WIP implementation. TODO
-* Make all this work with AxisArrays
-* Proper testing...
+Use HSVD to suppress a spectral region.
 """
-function hsvd_water_suppression(fid; dt = 0.0008, water_center_freq=0.0,
+function hsvd_water_suppression(fid::AbstractArray; dt = 0.0008, water_center_freq=0.0,
                                 bandwidth=100.0, hsvd_rank=50)
     zs0 = hsvd(fid, hsvd_rank)
 
@@ -90,3 +89,13 @@ function hsvd_water_suppression(fid; dt = 0.0008, water_center_freq=0.0,
     fid .- water
 end
 
+function hsvd_water_suppression(fid::AxisArray; dt = 0.0008, water_center_freq=0.0,
+                                bandwidth=100.0, hsvd_rank=50)
+    signal_ax = AxisArrays.axes(fid)
+    AxisArray(hsvd_water_suppression(fid.data;
+                                     dt=dt,
+                                     water_center_freq=water_center_freq,
+                                     bandwidth=bandwidth,
+                                     hsvd_rank=hsvd_rank),
+              signal_ax)
+end

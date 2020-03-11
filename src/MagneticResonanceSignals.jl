@@ -74,7 +74,9 @@ export
     # Spectral windows
     zeropad,
     apply_window, apply_window!,
-    sinebell
+    sinebell,
+    hsvd,
+    hsvd_water_suppression
 
 # High level signal processing
 export
