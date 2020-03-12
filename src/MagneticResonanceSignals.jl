@@ -9,6 +9,7 @@ using Unitful
 using FFTW
 
 using LinearAlgebra
+using Optim
 
 # Plotting
 using RecipesBase
@@ -85,7 +86,10 @@ export
     # Averaging of repeats
     simple_averaging,
     # Fourier transform
-    spectrum
+    spectrum,
+    # Phase correction
+    ernst,
+    adjust_phase,
 
 # Plotting
 export

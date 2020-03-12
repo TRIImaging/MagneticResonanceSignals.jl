@@ -73,3 +73,76 @@ function downsample_and_truncate(t, z, cutpre, cutpost, downsample)
     t[cutpre+1:end-cutpost], z[cutpre+1:end-cutpost,:]
 end
 
+"""
+    function adjust_phase(spectrum, zero_phase=0.0, first_phase=0.0, fixed_frequency=0.0)
+
+Adjust phases of the signal.
+
+# Example
+
+```
+expt = mr_load("path/to/twix")
+spec = spectrum(expt)
+ph0, ph1 = ernst(spec)
+spec_ph = adjust_phase(spec; zero_phase=ph0, first_phase=ph1)
+```
+"""
+function adjust_phase(
+    spectrum::AbstractArray; dt=0.0008, zero_phase=0.0, first_phase=0.0, fixed_frequency=0.0
+)
+    sw = 1.0/dt
+    np = size(spectrum)[end]
+    phase_ramp = Vector(range(-sw/2, stop=sw/2, length=np+1)[1:end-1])
+
+    phase_shift = zero_phase .+ first_phase * (fixed_frequency .+ phase_ramp)
+    spectrum .* exp.(1im .* phase_shift)
+end
+
+function adjust_phase(
+    spectrum::AxisArray; dt=0.0008, zero_phase=0.0, first_phase=0.0, fixed_frequency=0.0
+)
+
+    AxisArray(
+        adjust_phase(
+            spectrum.data;
+            dt=dt,
+            zero_phase=zero_phase,
+            first_phase=first_phase,
+            fixed_frequency=fixed_frequency
+        ),
+        AxisArrays.axes(spectrum)
+    )
+end
+
+"""
+    function ernst(spectrum)
+
+Estimates the zero and first order phase parameters which minimise the
+integral of imaginary part of the spectrum.
+
+This implementation is based on suspect.py. See:
+https://github.com/openmrslab/suspect/blob/master/suspect/processing/phase.py
+"""
+function ernst(spectrum::AbstractArray)
+    mapslices(
+        spec -> single_spectrum_version(spec),
+        spectrum,
+        dims=ndims(spectrum)
+    )
+end
+
+function single_spectrum_version(spectrum::AbstractArray)
+    np = size(spectrum)[end]
+    function residual(ph::Vector{Float64})
+        phased = adjust_phase(spectrum, zero_phase=ph[1], first_phase=ph[2])
+        sum(imag.(phased))
+    end
+    intial_x = [0.0, 0.0]
+    lower = [-pi, -0.01]
+    upper = [pi, 0.25]
+    # Minimize residual
+    result = optimize(residual, lower, upper, intial_x, NelderMead())
+    result.minimizer
+end
+
+

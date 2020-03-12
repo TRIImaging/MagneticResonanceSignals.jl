@@ -72,3 +72,17 @@ end
     # See comment above regarding channel combination.
     @test signal[1] ≈ 1.012432f-5 - 5.623437f-6im
 end
+
+@testset "Phase correction" begin
+    press = mr_load("twix/sub-SiemensBrainPhantom_seq-svsse_ref-1_avg-1.twix")
+    spec = spectrum(press)
+
+    # Get estimated zero and first order phase with ernst
+    ph0, ph1 = ernst(spec)
+    @test ph0 ≈ -2.735754851995358
+    @test ph1 ≈ 0.3920045765378072
+
+    # Phase correction
+    spec_ph = adjust_phase(spec; zero_phase=ph0, first_phase=ph1)
+    @test spec_ph[1] ≈ -2.483368f-6 - 5.092918f-7im
+end
