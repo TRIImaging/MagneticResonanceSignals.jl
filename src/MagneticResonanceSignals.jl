@@ -76,6 +76,7 @@ export
     zeropad,
     apply_window, apply_window!,
     sinebell,
+    # Water suppression
     hsvd,
     hsvd_water_suppression
 
