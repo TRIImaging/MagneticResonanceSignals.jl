@@ -79,10 +79,10 @@ export
     sinebell,
     # Water suppression
     hsvd,
-    hsvd_water_suppression
+    hsvd_water_suppression,
     # Phase correction
     ernst,
-    adjust_phase,
+    adjust_phase
 
 # High level signal processing
 export
