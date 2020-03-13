@@ -79,6 +79,9 @@ export
     # Water suppression
     hsvd,
     hsvd_water_suppression
+    # Phase correction
+    ernst,
+    adjust_phase,
 
 # High level signal processing
 export
@@ -88,9 +91,6 @@ export
     simple_averaging,
     # Fourier transform
     spectrum,
-    # Phase correction
-    ernst,
-    adjust_phase,
 
 # Plotting
 export

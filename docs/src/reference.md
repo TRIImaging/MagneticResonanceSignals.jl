@@ -61,6 +61,20 @@ apply_window!
 sinebell
 ```
 
+### Water suppression
+
+```@docs
+hsvd
+hsvd_water_suppression
+```
+
+### Phase correction
+
+```@docs
+adjust_phase
+ernst
+```
+
 ## Plotting
 
 ```@docs
