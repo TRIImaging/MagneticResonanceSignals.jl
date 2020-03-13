@@ -75,6 +75,12 @@ adjust_phase
 ernst
 ```
 
+### Baseline correction
+
+```@docs
+baseline_als
+```
+
 ## Plotting
 
 ```@docs

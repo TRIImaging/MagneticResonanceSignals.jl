@@ -145,4 +145,34 @@ function single_spectrum_version(spectrum::AbstractArray)
     result.minimizer
 end
 
+"""
+    function baseline_als(spectrum, lambda::Float64, p::Float64; niter::Int64=10)
 
+Baseline correction based on ALS (Asymmetric Least Square).
+
+Lambda is 2nd derivative constraint, which contributes to the smoothness, while p is
+weighting of positive residuals, which affect to the asymmetry.
+
+This implementation is inspired by https://stackoverflow.com/a/29185844/5023889
+"""
+function baseline_als(spectrum::AbstractArray, lambda::Float64, p::Float64; niter::Int64=10)
+    L = size(spectrum)[1]
+    x = diff(Matrix{Float64}(I, L, L), dims=2)
+    D = sparse(diff(x, dims=2))
+    w = ones(L)
+    z = nothing
+    for i in 1:niter
+        W = sparse(diagm(ones(L)))
+        Z = W + lambda * (D * transpose(D))
+        z = Z \ (w .* spectrum)
+        w = (p .* (spectrum > z)) + ((1-p) .* (spectrum < z))
+    end
+    z
+end
+
+function baseline_als(spectrum::AxisArray, lambda::Float64, p::Float64; niter::Int64=10)
+    AxisArray(
+        baseline_als(spectrum, lambda, p; niter=niter),
+        AxisArrays.axes(y)
+    )
+end

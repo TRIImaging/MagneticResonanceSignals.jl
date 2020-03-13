@@ -10,6 +10,7 @@ using FFTW
 
 using LinearAlgebra
 using Optim
+using SparseArrays
 
 # Plotting
 using RecipesBase
@@ -91,6 +92,7 @@ export
     simple_averaging,
     # Fourier transform
     spectrum,
+    baseline_als
 
 # Plotting
 export
