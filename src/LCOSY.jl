@@ -45,9 +45,9 @@ function Base.show(io::IO, lcosy::LCOSY)
 end
 
 """
-    extract_fids(lcosy::LCOSY; downsample=1)
+    extract_fids(expt; downsample=1)
 
-Extract raw fid from LCOSY experiment and apply channel combination
+Extract raw fid from experiment (PRESS/LCOSY) and apply channel combination
 """
 function extract_fids(lcosy::LCOSY; downsample=1)
     acqs = lcosy.acquisitions
@@ -100,7 +100,8 @@ end
     spectrum(lcosy::LCOSY,
              win1=t->sinebell(t, pow=2),
              win2=t->sinebell(t, skew=0.3, pow=2),
-             t1pad=4)
+             t1pad=4,
+             downsample=1)
 
 Compute spectrum from lcosy data with "standard" L-COSY processing parameters
 as have traditionally been used by Mountford et. al.
@@ -111,8 +112,9 @@ as have traditionally been used by Mountford et. al.
 function spectrum(lcosy::LCOSY;
                   win1=t->sinebell(t, pow=2),
                   win2=t->sinebell(t, skew=0.3, pow=2),
-                  t1pad=4)
-    signal = simple_averaging(lcosy)
+                  t1pad=4,
+                  downsample=1)
+    signal = simple_averaging(lcosy, downsample=downsample)
     # Apply sine bell squared windows to signal, as in TRI Felix workflow
     apply_window!(signal, Axis{:time2}, win2)
     apply_window!(signal, Axis{:time1}, win1)

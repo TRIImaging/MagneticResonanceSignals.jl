@@ -12,6 +12,7 @@ include("core.jl")
 include("mr_load.jl")
 include("processing.jl")
 include("windows.jl")
+include("hsvd.jl")
 
 include("fixedstring.jl")
 include("io_twix.jl")
