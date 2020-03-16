@@ -86,3 +86,12 @@ end
     spec_ph = adjust_phase(spec; zero_phase=ph0, first_phase=ph1)
     @test spec_ph[1] ≈ -2.483368f-6 - 5.092918f-7im
 end
+
+@testset "Baseline correction" begin
+    press = mr_load("twix/sub-SiemensBrainPhantom_seq-svsse_ref-1_avg-1.twix")
+    spec = spectrum(press, tpad=1)
+
+    spec_base = baseline_als(abs.(spec), 0.5, 0.01)
+    @test !(spec_base[1] ≈ abs.(spec)[1])
+    @test spec_base[1] ≈ 2.350083f-8
+end
