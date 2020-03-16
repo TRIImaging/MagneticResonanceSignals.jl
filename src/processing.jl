@@ -178,3 +178,31 @@ function baseline_als(spectrum::AxisArray, lambda::Float64, p::Float64; niter::I
         AxisArrays.axes(y)
     )
 end
+
+"""
+    align_frequency!(spectrums::AbstractVector)
+
+Align a list of spectrums in a highest peak with first spectrum as a reference. This will
+pad the spectrum with 0s after shifting to retain the original length.
+"""
+function align_frequency!(spectrums::AbstractVector)
+    # Use first spectrum as a reference
+    highest_peak_ref_idx = findmax(spectrums[1])[2]
+    original_length = length(spectrums[1])
+    for idx=2:length(spectrums)
+        highest_peak_idx = findmax(spectrums[idx])[2]
+        shift = highest_peak_idx - highest_peak_ref_idx
+        pads = [0 for i=1:abs(shift)]
+        if shift > 0
+            # Shift left: right-pad
+            push!(spectrums[idx], pads...)
+            spectrums[idx] = spectrums[idx][abs(shift)+1:abs(shift)+original_length]
+            nothing
+        elseif shift < 0
+            # Shift right: left-pad
+            pushfirst!(spectrums[idx], pads...)
+            spectrums[idx] = spectrums[idx][1:end-abs(shift)]
+            nothing
+        end
+    end
+end

@@ -95,3 +95,18 @@ end
     @test !(spec_base[1] ≈ abs.(spec)[1])
     @test spec_base[1] ≈ 2.350083f-8
 end
+
+@testset "frequency alignment" begin
+    test_data = [
+        [1, 2, 4, 10, 2, 4, 3],
+        [1, 2, 50, 2, 4, 2, 3],
+        [1, 3, 4, 5, 10, 1, 2]
+    ]
+    align_frequency!(test_data)
+    expected = [
+        [1, 2, 4, 10, 2, 4, 3],
+        [0, 1, 2, 50, 2, 4, 2],
+        [3, 4, 5, 10, 1, 2, 0]
+    ]
+    @test test_data == expected
+end

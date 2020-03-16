@@ -82,7 +82,9 @@ export
     hsvd_water_suppression,
     # Phase correction
     ernst,
-    adjust_phase
+    adjust_phase,
+    # Frequency alignment
+    align_frequency!
 
 # High level signal processing
 export
