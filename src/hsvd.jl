@@ -58,8 +58,8 @@ end
 
 
 """
-    function hsvd_water_suppression(fid; dt = 0.0008, water_center_freq=0.0,
-                                    bandwidth=100.0, hsvd_rank=50)
+    hsvd_water_suppression(fid; dt = 0.0008, water_center_freq=0.0,
+                           bandwidth=100.0, hsvd_rank=50)
 
 Use HSVD to suppress a spectral region.
 """

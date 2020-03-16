@@ -74,7 +74,7 @@ function downsample_and_truncate(t, z, cutpre, cutpost, downsample)
 end
 
 """
-    function adjust_phase(spectrum, zero_phase=0.0, first_phase=0.0, fixed_frequency=0.0)
+    adjust_phase(spectrum, zero_phase=0.0, first_phase=0.0, fixed_frequency=0.0)
 
 Adjust phases of the signal.
 
@@ -115,7 +115,7 @@ function adjust_phase(
 end
 
 """
-    function ernst(spectrum)
+    ernst(spectrum)
 
 Estimates the zero and first order phase parameters which minimise the
 integral of imaginary part of the spectrum.
@@ -146,7 +146,7 @@ function single_spectrum_version(spectrum::AbstractArray)
 end
 
 """
-    function baseline_als(spectrum, lambda::Float64, p::Float64; niter::Int64=10)
+    baseline_als(spectrum, lambda::Float64, p::Float64; niter::Int64=10)
 
 Baseline correction based on ALS (Asymmetric Least Square).
 
