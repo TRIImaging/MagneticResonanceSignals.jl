@@ -155,7 +155,9 @@ weighting of positive residuals, which affect to the asymmetry.
 
 This implementation is inspired by https://stackoverflow.com/a/29185844/5023889
 """
-function baseline_als(spectrum::AbstractArray, lambda::Float64, p::Float64; niter::Int64=10)
+function baseline_als(
+    spectrum::AbstractVector{Float64}, lambda::Float64, p::Float64; niter::Int64=10
+)
     L = size(spectrum)[1]
     x = diff(Matrix{Float64}(I, L, L), dims=2)
     D = sparse(diff(x, dims=2))
