@@ -345,7 +345,7 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
                       Key $k has different value in MeasYaps and Phoenix ASCCONV section. As per
                       our testing in getting the correct frequency, MeasYaps sometimes is not
                       consistent with other sections, so this metadata is extracted from Phoenix.
-                      """ yaps_meta[k] phoenix_ascconv_meta[k]
+                      """ yaps_meta=yaps_meta[k] phoenix_ascconv_meta=phoenix_ascconv_meta[k]
             end
         end
         dicom_meta = match_xprot_header(header_sections["Dicom"], "Dicom.",
