@@ -85,6 +85,10 @@ end
 
 @testset "twix quality control" begin
     twix = @test_logs (Logging.Warn,r"Unexpected empty meas packet") #=
+               =# (Logging.Warn,r"Key lSequenceID has different") #=
+               =# (Logging.Warn,r"Key lPtabAbsStartPosZ has different") #=
+               =# (Logging.Warn,r"Key bPtabAbsStartPosZValid has different") #=
+               =# (Logging.Warn,r"Key sTXSPEC.B1CorrectionParameters.bValid has different") #=
                =# load_twix("twix/sub-SiemensBrainPhantom_seq-svslcosy_incomplete.twix")
     @test MagneticResonanceSignals.AcquisitionsIncomplete in twix.quality_control
 
@@ -99,6 +103,10 @@ end
     truncated_twix = copy(valid_twix_bytes)
     truncated_twix = truncated_twix[1:900_000]
     twix = @test_logs (Logging.Warn,r"Twix acquisition truncated at position 900000") #=
+        =# (Logging.Warn,r"Key lSequenceID has different") #=
+        =# (Logging.Warn,r"Key lPtabAbsStartPosZ has different") #=
+        =# (Logging.Warn,r"Key bPtabAbsStartPosZValid has different") #=
+        =# (Logging.Warn,r"Key sTXSPEC.B1CorrectionParameters.bValid has different") #=
         =# load_twix(IOBuffer(truncated_twix))
     @test MagneticResonanceSignals.AcquisitionsIncomplete in twix.quality_control
 end
