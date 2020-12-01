@@ -333,13 +333,32 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
     @debug "Header section names" keys(header_sections)
     metadata = Dict{String,Any}()
     try
+        phoenix_ascconv = match(r"(### ASCCONV BEGIN.*### ASCCONV END ###)"s,
+                                header_sections["Phoenix"]).captures[1]
         yaps_meta = parse_header_yaps(header_sections["MeasYaps"])
+        phoenix_ascconv_meta = parse_header_yaps(phoenix_ascconv)
+
+        # Check if the same key has different value in yaps and phoenix to warn user
+        differences = Dict()
+        for k in intersect(Set(keys(yaps_meta)), Set(keys(phoenix_ascconv_meta)))
+            if yaps_meta[k] != phoenix_ascconv_meta[k]
+                differences[k] = (MeasYapsASCCONV=yaps_meta[k],
+                                  PhoenixASCCONV=phoenix_ascconv_meta[k])
+            end
+        end
+        if length(differences) > 0
+            @warn """
+                  Different values found in MeasYaps and Phoenix ASCCONV section. As per
+                  our testing in getting the correct frequency, MeasYaps sometimes is not
+                  consistent with other sections, so this metadata is extracted from Phoenix.
+                  """ differences
+        end
         dicom_meta = match_xprot_header(header_sections["Dicom"], "Dicom.",
                                         ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName", "Manufacturer", "ManufacturersModelName"])
         meas_meta  = match_xprot_header(header_sections["Meas"], "Meas.",
                                         ["tReferenceImage0", "tReferenceImage1", "tReferenceImage2",
                                          "tFrameOfReference"])
-        metadata = merge(metadata, yaps_meta, dicom_meta, meas_meta)
+        metadata = merge(metadata, yaps_meta, phoenix_ascconv_meta, dicom_meta, meas_meta)
     catch exc
         @error "Could not parse header metadata" exception=(exc,catch_backtrace())
     end

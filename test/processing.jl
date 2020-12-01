@@ -24,7 +24,7 @@ end
 end
 
 @testset "lcosy" begin
-    lcosy = @test_logs (:warn,) mr_load("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
+    lcosy = @test_logs (:warn,) (:warn,) mr_load("twix/sub-SiemensBrainPhantom_seq-svslcosy_inc-1.twix")
 
     signal = simple_averaging(lcosy)
     @test size(signal) == (2048,1)
