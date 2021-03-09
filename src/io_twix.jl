@@ -852,6 +852,7 @@ function mr_load(twix::MRExperiment; repair=false)
         elseif is_svs_lcosy
             nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
             t1_inc_loop_idx = loop_counter_index(:partition)
+            avg_loop_idx = loop_counter_index(:acquisition)
             # TODO - stash legacy_timing somewhere
             legacy_timing = get(twix.metadata, "sWipMemBlock.alFree[5]", 0) == 1
             dt1           = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
