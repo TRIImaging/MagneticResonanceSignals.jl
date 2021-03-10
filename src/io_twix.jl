@@ -797,11 +797,13 @@ function mr_load(twix::MRExperiment; repair=false)
     is_svs_lcosy = occursin("svs_lcosy", meta.sequence_name)
     is_srcosy    = occursin("srcosy", meta.sequence_name) ||
                    occursin("sr_cosy", meta.sequence_name)
+    is_svs_cosy  = occursin("svs_cosy", meta.sequence_name)
     is_press     = "%SiemensSeq%\\svs_se" == meta.sequence_name
     num_averages = twix.metadata["lAverages"]
-    if is_svs_lcosy || is_srcosy
+    if is_svs_lcosy || is_srcosy || is_svs_cosy
         release_versions = ["%CustomerSeq%\\srcosy",
                             "%CustomerSeq%\\sr_cosy",
+                            "%CustomerSeq%\\svs_cosy",
                             "%CustomerSeq%\\svs_lcosy-1"]
         if !(meta.sequence_name in release_versions)
             @warn """
@@ -813,6 +815,7 @@ function mr_load(twix::MRExperiment; repair=false)
         end
 
         t1_inc_loop_idx = 0
+        avg_loop_idx = 0
 
         if is_srcosy
             old_srcosy = occursin("sr_cosy", meta.sequence_name) ||
@@ -820,6 +823,7 @@ function mr_load(twix::MRExperiment; repair=false)
             # Uuugh. Number of t1 increments must be inferred from repetitions
             # loop counter.
             t1_inc_loop_idx = loop_counter_index(:repetition)
+            avg_loop_idx = loop_counter_index(:acquisition)
             nsamp_t1 = Int(maximum(d.loop_counters.repetition for d in twix.data)) + 1
             dt1_key = "sWipMemBlock.adFree[1]"
             if !haskey(twix.metadata, dt1_key)
@@ -837,9 +841,18 @@ function mr_load(twix::MRExperiment; repair=false)
             else
                 dt1 = twix.metadata[dt1_key]*u"ms"
             end
+        elseif is_svs_cosy
+            # Uuugh. Number of t1 increments must be inferred from acquisitions
+            # loop counter.
+            t1_inc_loop_idx = loop_counter_index(:partition)
+            avg_loop_idx = loop_counter_index(:acquisition)
+            nsamp_t1 = Int(maximum(d.loop_counters.partition for d in twix.data)) + 1
+            dt1_key = "sWipMemBlock.adFree[1]"
+            dt1 = twix.metadata[dt1_key]*u"ms"
         elseif is_svs_lcosy
             nsamp_t1 = twix.metadata["sWipMemBlock.alFree[3]"]
             t1_inc_loop_idx = loop_counter_index(:partition)
+            avg_loop_idx = loop_counter_index(:acquisition)
             # TODO - stash legacy_timing somewhere
             legacy_timing = get(twix.metadata, "sWipMemBlock.alFree[5]", 0) == 1
             dt1           = twix.metadata["sWipMemBlock.adFree[1]"]*u"ms"
@@ -869,7 +882,7 @@ function mr_load(twix::MRExperiment; repair=false)
                 push!(ref_scans, i)
             end
             t1_index = acq.loop_counters[t1_inc_loop_idx] + 1
-            avg_index = acq.loop_counters.acquisition + 1
+            avg_index = acq.loop_counters[avg_loop_idx] + 1
             if avg_index == 1 && acq.loop_counters.set > 0
                 avg_index = acq.loop_counters.set + 1
                 if !did_loop_warning
