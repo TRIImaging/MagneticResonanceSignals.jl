@@ -9,6 +9,8 @@ using Unitful
 using FFTW
 
 using LinearAlgebra
+using Optim
+using SparseArrays
 
 # Plotting
 using RecipesBase
@@ -74,7 +76,15 @@ export
     # Spectral windows
     zeropad,
     apply_window, apply_window!,
-    sinebell
+    sinebell,
+    # Water suppression
+    hsvd,
+    hsvd_water_suppression,
+    # Phase correction
+    ernst,
+    adjust_phase,
+    # Frequency alignment
+    align_frequency!
 
 # High level signal processing
 export
@@ -83,7 +93,8 @@ export
     # Averaging of repeats
     simple_averaging,
     # Fourier transform
-    spectrum
+    spectrum,
+    baseline_als
 
 # Plotting
 export

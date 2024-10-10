@@ -49,3 +49,57 @@ function Base.show(io::IO, press::PRESS)
                   length(navigator) = $(length(press.navigator))""")
     show(io, press.acquisitions)
 end
+
+function extract_fids(press::PRESS; downsample=1)
+    acqs = press.acquisitions
+    # Use reference scans if possible to figure out channel combination
+    # weights; if not, use the actual data (which has worse SNR because it's
+    # probably water-suppressed)
+    combiner_inds = press.ref_scans
+    if isempty(combiner_inds)
+        # TODO: Put this logic in pca_channel_combiner ?
+        combiner_inds = vec(press.press_scans)
+    end
+    combiner = pca_channel_combiner(sampledata(acqs, i) for i in combiner_inds)
+
+    # Hmm. Calling sampledata to initialize this is kinda ugly...
+    fid1 = combiner(sampledata(acqs, press.press_scans[1,1], downsample=downsample))
+    t = AxisArrays.axes(fid1, Axis{:time}).val
+    num_averages = length(press.press_scans)
+    phase_cycle = mod1.(1:num_averages, press.cycle_length)
+
+    signal = AxisArray(zeros(eltype(fid1), length(t), num_averages),
+                       Axis{:time}(t),
+                       Axis{:phase_cycle}(phase_cycle))
+    for i=1:num_averages
+        fid = combiner(sampledata(acqs, press.press_scans[i], downsample=downsample))
+        signal[:,i] = fid
+    end
+    signal
+end
+
+function simple_averaging(press::PRESS; downsample=1)
+    fids = extract_fids(press, downsample=downsample)
+    simple_averaging(fids)
+end
+
+"""
+    spectrum(press::PRESS,
+             win=t->sinebell(t, pow=2),,
+             t1pad=4,
+             downsample=1)
+
+Compute spectrum from press data with processing parameters as follows.
+   * Simple averaging
+   * T: Sine bell squared window, 4x zero padded
+"""
+function spectrum(press::PRESS;
+                  win=t->sinebell(t, pow=2),
+                  tpad=4,
+                  downsample=1)
+    signal = simple_averaging(press, downsample=downsample)
+    # Apply sine bell squared windows to signal, as in TRI Felix workflow
+    apply_window!(signal, Axis{:time}, win)
+    signal = zeropad(signal, Axis{:time}, tpad)
+    spectrum(signal)
+end
