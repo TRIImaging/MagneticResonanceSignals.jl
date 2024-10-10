@@ -353,12 +353,14 @@ function load_twix(io::IO; header_only=false, acquisition_filter=(acq)->true,
                   consistent with other sections, so this metadata is extracted from Phoenix.
                   """ differences
         end
-        dicom_meta = match_xprot_header(header_sections["Dicom"], "Dicom.",
+        dicom_meta = match_xprot_header(String, header_sections["Dicom"], "Dicom.",
                                         ["SoftwareVersions", "DeviceSerialNumber", "InstitutionName", "Manufacturer", "ManufacturersModelName"])
-        meas_meta  = match_xprot_header(header_sections["Meas"], "Meas.",
+        meas_meta  = match_xprot_header(String, header_sections["Meas"], "Meas.",
                                         ["tReferenceImage0", "tReferenceImage1", "tReferenceImage2",
                                          "tFrameOfReference"])
-        metadata = merge(metadata, yaps_meta, phoenix_ascconv_meta, dicom_meta, meas_meta)
+        patient_meas_meta = match_xprot_header(Float64, header_sections["Meas"], "Meas.",
+                                               ["flPatientAge", "flPatientHeight", "flUsedPatientWeight"])
+        metadata = merge(metadata, yaps_meta, phoenix_ascconv_meta, dicom_meta, meas_meta, patient_meas_meta)
     catch exc
         @error "Could not parse header metadata" exception=(exc,catch_backtrace())
     end
@@ -623,13 +625,20 @@ function parse_twix_header_sections(io)
     sections
 end
 
-function match_xprot_header(xprot_text, key_prefix, xprot_keys)
+function match_xprot_header(param_dtype::DataType, xprot_text, key_prefix, xprot_keys)
     # Very heuristic "parsing" of XProtocol header section.
     # Ideally we'd have a proper XProtocol parser (see xprotocol.jl), but that
     # seems like a lot of work.
     metadata = Dict{String,String}()
     for key in xprot_keys
-        m = match(Regex("""<ParamString\\."$key">\\s*\\{\\s*"([^}]*)"\\s*\\}""", "s"), xprot_text)
+        if param_dtype <: AbstractString
+            m = match(Regex("""<ParamString\\."$key">\\s*\\{\\s*"([^}]*)"\\s*\\}""", "s"), xprot_text)
+        elseif param_dtype <: AbstractFloat
+            m = match(Regex("""<Param(?:Double|Long)\\."$key">\\s*{\\s*"""*
+                            """(?:<Unit>\\s\\"[\\[\\]A-Za-z]*\\"\\s*)?"""*
+                            """<Precision>\\s*[0-9]*\\s*([0-9]*\\.[0-9]*)\\s*}""", "s"), 
+                      xprot_text)
+        end
         if m !== nothing
             metadata[key_prefix*key] = m[1]
         end
