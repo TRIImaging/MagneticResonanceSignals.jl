@@ -10,7 +10,7 @@ makedocs(;
     ],
     repo="https://github.com/TRIImaging/MagneticResonanceSignals.jl/blob/{commit}{path}#L{line}",
     sitename="MagneticResonanceSignals.jl",
-    authors="Chris Foster <chris42f@gmail.com>"
+    authors="Claire Foster <aka.c42f@gmail.com>"
 )
 
 deploydocs(;

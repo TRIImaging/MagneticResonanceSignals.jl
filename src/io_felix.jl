@@ -13,7 +13,7 @@ configuration and processing parameters to Felix. Felix variables can be
 listed within the Felix interface by typing the `lis` ("list symbols")
 command.  See <www.felixnmr.com/doc/felix2004L/cref/Output/A_CommandRef_1_all.html>.
 
-Unfortunately `.dat` is rather poorly documented.  Here's what I (Chris
+Unfortunately `.dat` is rather poorly documented.  Here's what I (Claire
 Foster) have been able to deduce about it by looking at old source code and
 writing exploratory data files followed by dumping the Felix symbols with the
 `lis` command.
